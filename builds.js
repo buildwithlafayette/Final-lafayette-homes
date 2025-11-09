@@ -239,4 +239,74 @@
 
     const img = modal.querySelector('.lh-modal-photo');
     const left = modal.querySelector('.lh-arrow.left');
-    const right = modal.querySelector('.lh-arr
+    const right = modal.querySelector('.lh-arrow.right');
+    const counter = modal.querySelector('.lh-counter');
+
+    function show(i) {
+      index = (i + count) % count;
+      if (img) img.src = photos[index] || '';
+      if (counter) counter.textContent = `${index + 1}/${count}`;
+    }
+
+    left && left.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); show(index - 1); });
+    right && right.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); show(index + 1); });
+
+    window.addEventListener('keydown', keyHandler);
+    function keyHandler(e) {
+      if (!document.getElementById('lh-modal')) { window.removeEventListener('keydown', keyHandler); return; }
+      if (e.key === 'Escape') closeModal();
+      if (e.key === 'ArrowRight') show(index + 1);
+      if (e.key === 'ArrowLeft') show(index - 1);
+    }
+
+    // Start at correct index
+    if (startIndex) show(startIndex);
+  }
+
+  function closeModal() {
+    const modal = document.getElementById('lh-modal');
+    if (modal) modal.remove();
+    document.body.classList.remove('modal-open');
+  }
+
+  /* ------------------ schedule buttons ------------------- */
+  function attachScheduleButtons(homes) {
+    const byId = Object.fromEntries(homes.map(h => [h.id, h]));
+    document.querySelectorAll('.schedule-card-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const card = btn.closest('.lh-card');
+        const id = card && card.getAttribute('data-id');
+        const home = id && byId[id];
+        if (home) {
+          // Could pre-fill form here if you add inputs
+          window.location.href = 'schedule.html';
+        }
+      });
+    });
+  }
+
+  /* ---------- sticky bottom schedule CTA toggle ---------- */
+  function attachBottomScheduleCta() {
+    const toggle = document.getElementById('schedule-toggle');
+    const panel = document.getElementById('schedule-panel');
+    if (!toggle || !panel) return;
+
+    toggle.addEventListener('click', () => {
+      const open = panel.getAttribute('data-open') === 'true';
+      panel.setAttribute('data-open', String(!open));
+      toggle.setAttribute('aria-expanded', String(!open));
+    });
+  }
+
+  const _homeCache = {};
+  function getById(id) { return _homeCache[id]; }
+
+  /* ----------------------- form -------------------------- */
+  function wireForm() {
+    const form = document.querySelector('.realtor-form');
+    if (!form) return;
+    form.addEventListener('submit', async () => {});
+  }
+})();
