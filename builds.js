@@ -4,13 +4,14 @@
    Status colors: Available=green, Under Contract=yellow, Sold=red
    Mobile: swipe left/right, backdrop tap to close, fixed close button
    CTA: bottom Schedule button always navigates to schedule.html
+   Zillow button: brand blue so it stands out in Light mode
    ========================== */
 
 (function () {
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
-    injectCSS(); // modal styles + mobile tweaks
+    injectCSS(); // modal styles + mobile tweaks + Zillow button
 
     // Load listings
     const res = await fetch('availableHomes.json', { cache: 'no-store' });
@@ -100,7 +101,7 @@
           </div>
 
           <div class="lh-card-actions">
-            ${h.zillowUrl ? `<a class="btn ghost" href="${h.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
+            ${h.zillowUrl ? `<a class="btn zillow" href="${h.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
             <button class="btn primary view-photos" type="button">View Photos</button>
           </div>
         </div>
@@ -158,7 +159,7 @@
             </div>
           </div>
           <div class="lb-actions">
-            ${home.zillowUrl ? `<a class="btn ghost" href="${home.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
+            ${home.zillowUrl ? `<a class="btn zillow" href="${home.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
             <a class="btn primary" href="schedule.html">Schedule a Tour</a>
           </div>
         </aside>
@@ -251,10 +252,24 @@
     if (document.getElementById('lb-style')) return;
     const css = `
       /* basic buttons */
-      .btn { display:inline-flex; align-items:center; justify-content:center; border-radius:12px; padding:10px 16px; font-weight:600; }
+      .btn { display:inline-flex; align-items:center; justify-content:center; border-radius:12px; padding:10px 16px; font-weight:600; border:1px solid transparent; }
       .btn.primary { background:#fff; color:#0c0c0c; }
-      .btn.ghost { border:1px solid rgba(255,255,255,.12); color:#cfcfcf; }
-      .btn:hover { filter:brightness(1.05); }
+
+      /* Zillow brand button (pops in light mode, still strong in dark) */
+      .btn.zillow {
+        background:#006AFF;           /* Zillow blue */
+        color:#fff;
+        border-color:rgba(0,0,0,0); 
+      }
+      .btn.zillow:hover { filter:brightness(0.95); }
+      .btn.zillow:active { transform: translateY(1px); }
+      .btn.zillow:focus { outline:2px solid rgba(0,106,255,.35); outline-offset:2px; }
+
+      /* legacy ghost kept for other places, but not used for Zillow anymore */
+      .btn.ghost { background:transparent; border-color:rgba(255,255,255,.12); color:#cfcfcf; }
+      @media (prefers-color-scheme: light) {
+        .btn.ghost { border-color:rgba(0,0,0,.12); color:#333; }
+      }
 
       /* grid thumbs */
       .aspect-16x9 { position:relative; width:100%; padding-top:56.25%; overflow:hidden; border-radius:20px; }
