@@ -1,13 +1,14 @@
 /* ==========================
    Lafayette Homes – builds.js
    EXACT layout: large photo left, details panel right, single lightbox
+   Status colors: Available=green, Under Contract=yellow, Sold=red
    ========================== */
 
 (function () {
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
-    injectCSS(); // ensures the modal looks exactly right even if site CSS varies
+    injectCSS(); // ensures the modal + badges look right
 
     // Load listings
     const res = await fetch('availableHomes.json', { cache: 'no-store' });
@@ -29,7 +30,7 @@
     // Wire cards → open modal at image 0
     const idMap = Object.fromEntries(homes.map(h => [String(h.id), h]));
     grid.querySelectorAll('.lh-card').forEach(card => {
-      card.addEventListener('click', e => {
+      card.addEventListener('click', () => {
         const id = card.getAttribute('data-id');
         const home = idMap[id];
         if (!home) return;
@@ -46,14 +47,22 @@
     });
   }
 
-  /* ---------- card markup (kept simple & reliable) ---------- */
+  /* ---------- card markup ---------- */
+  function getStatusClass(status) {
+    const s = (status || '').toLowerCase();
+    if (s === 'sold') return 'sold';
+    if (s === 'under contract' || s === 'under-contract') return 'under-contract';
+    return 'available';
+  }
+
   function renderCard(h) {
     const photos = (h.photos || []).slice();
     const first = photos[0] || '';
+    const statusClass = h.status ? getStatusClass(h.status) : '';
 
     return `
       <article class="lh-card" data-id="${h.id || ''}" tabindex="0" aria-label="${h.address || ''}">
-        ${h.status ? `<div class="lh-status">${h.status}</div>` : ``}
+        ${h.status ? `<div class="lh-status ${statusClass}">${h.status}</div>` : ``}
 
         <div class="lh-card-media">
           <div class="lh-thumb aspect-16x9">
@@ -187,14 +196,18 @@
       .aspect-16x9 { position:relative; width:100%; padding-top:56.25%; overflow:hidden; border-radius:20px; }
       .fit-cover { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#111; }
 
-      .lh-card { background:#121212; border:1px solid rgba(255,255,255,.08); border-radius:22px; overflow:hidden; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+      .lh-card { position:relative; background:#121212; border:1px solid rgba(255,255,255,.08); border-radius:22px; overflow:hidden; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,.25); }
       .lh-card-body { padding:16px; }
       .lh-card-title { font-size:20px; font-weight:800; color:#fff; margin:0 0 4px; }
       .lh-card-sub { color:#bbb; font-size:14px; margin-bottom:6px; }
       .lh-card-meta { color:#cfcfcf; font-size:14px; margin-bottom:12px; }
       .lh-card-actions { display:flex; gap:10px; flex-wrap:wrap; }
 
-      .lh-status { position:absolute; margin:10px; z-index:1; background:rgba(20,175,90,.18); color:#9cf0bd; border:1px solid rgba(20,175,90,.25); padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+      /* Status badge (top-left on card) */
+      .lh-status { position:absolute; top:10px; left:10px; z-index:1; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:800; border:1px solid transparent; }
+      .lh-status.available { background:rgba(20,175,90,.18); border-color:rgba(20,175,90,.25); color:#9cf0bd; }   /* green */
+      .lh-status.under-contract { background:rgba(255,213,0,.18); border-color:rgba(255,213,0,.35); color:#ffe37a; } /* yellow */
+      .lh-status.sold { background:rgba(255,60,60,.18); border-color:rgba(255,60,60,.35); color:#ff9a9a; }          /* red  */
 
       /* Lightbox root */
       .lb-noscroll { overflow:hidden; }
@@ -204,7 +217,7 @@
 
       /* Left: image */
       .lb-stage { flex: 2 1 66%; min-width: 0; display:flex; align-items:center; justify-content:center; }
-      .lb-stage-inner { width:100%; max-height:calc(100vh - 160px); border-radius:20px; overflow:hidden; background:#0b0b0b; }
+      .lb-stage-inner { position:relative; width:100%; max-height:calc(100vh - 160px); border-radius:20px; overflow:hidden; background:#0b0b0b; }
       .lb-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
 
       /* Arrows + counter on image */
