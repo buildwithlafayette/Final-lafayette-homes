@@ -24,7 +24,7 @@
     attachCardModal(homes);       // FULL-SCREEN modal (restored)
     attachScheduleButtons(homes); // per-card schedule button
     attachBottomScheduleCta();    // bottom page schedule CTA
-    wireForm();                   // no-op placeholder
+    wireForm();
   }
 
   /* ===================== UTIL ===================== */
@@ -85,7 +85,6 @@
   /* ===================== GRID SLIDER ===================== */
   function attachCardPhotoSliders() {
     document.querySelectorAll('.lh-photo-wrap').forEach(wrap => {
-      // Gather photos
       let spans = [];
       const tpl = wrap.querySelector('template.lh-photos');
       if (tpl && tpl.content) spans = Array.from(tpl.content.querySelectorAll('span'));
@@ -95,7 +94,6 @@
       const img = wrap.querySelector('.lh-photo');
       const counter = wrap.querySelector('.lh-counter');
 
-      // Stop bubbling when arrows or photo are clicked (modal will open from the card itself)
       wrap.addEventListener('click', (e) => {
         if (e.target.closest('.lh-arrow') || e.target.classList.contains('lh-photo')) e.stopPropagation();
       });
@@ -115,7 +113,6 @@
       wrap.querySelector('.left')?.addEventListener('click', prev);
       wrap.querySelector('.right')?.addEventListener('click', next);
 
-      // Keyboard when wrap focused
       wrap.setAttribute('tabindex', '0');
       wrap.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
@@ -129,7 +126,7 @@
     const byId = Object.fromEntries(homes.map(h => [h.id, h]));
 
     document.querySelectorAll('.lh-card').forEach(card => {
-      // Guard: links/buttons inside card shouldn't open modal
+      // Don’t let inner controls trigger modal
       card.querySelectorAll('a, button, .lh-arrow, .lh-photo').forEach(el => {
         el.addEventListener('click', e => e.stopPropagation());
       });
@@ -152,7 +149,7 @@
   }
 
   function openModal(home) {
-    closeModal(); // ensure clean
+    closeModal(); // clean slate
 
     const photos = (home.photos || []).slice();
     const count = photos.length || 1;
@@ -160,7 +157,7 @@
 
     const modal = document.createElement('div');
     modal.id = 'lh-modal';
-    modal.className = 'lh-modal open'; // rely on your existing dark theme
+    modal.className = 'lh-modal open';
     modal.innerHTML = `
       <div class="lh-modal-backdrop"></div>
       <div class="lh-modal-panel" role="dialog" aria-modal="true" aria-label="${home.address || 'Listing'}">
@@ -216,7 +213,7 @@
     modal.querySelector('.lh-modal-backdrop')?.addEventListener('click', closeModal);
     document.addEventListener('keydown', escHandler);
 
-    // Schedule button inside modal
+    // Schedule from modal
     modal.querySelector('.schedule-modal-btn')?.addEventListener('click', (e) => {
       e.preventDefault();
       openSchedulePanel(home);
@@ -238,7 +235,6 @@
     const modal = document.getElementById('lh-modal');
     if (modal) modal.remove();
     document.body.classList.remove('modal-open');
-    document.removeEventListener('keydown', () => {}); // noop; listeners removed with node
   }
 
   /* ===================== SCHEDULE BUTTONS ===================== */
@@ -257,10 +253,10 @@
   }
 
   function attachBottomScheduleCta() {
-    // Try explicit hooks first
+    // Prefer explicit hooks
     let ctas = Array.from(document.querySelectorAll('#schedule-cta, .schedule-cta, [data-schedule], a[href="#schedule"]'));
     if (ctas.length === 0) {
-      // Fallback: any button/link that says "Schedule a Tour" and is NOT inside a card or modal
+      // Fallback: any "Schedule a Tour" button/link NOT inside a card/modal
       ctas = Array.from(document.querySelectorAll('button, a')).filter(el => {
         if (el.closest('.lh-card') || el.closest('#lh-modal')) return false;
         const t = (el.textContent || el.innerText || '').trim().toLowerCase();
