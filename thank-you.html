@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thanks — Lafayette Homes</title>
+
+  <meta name="robots" content="noindex" />
+  <meta name="description" content="Thanks for reaching out to Lafayette Homes. We'll get back to you shortly." />
+
+  <link rel="stylesheet" href="styles.css?v=20" />
+  <!-- Support light and dark themes -->
+  <meta name="color-scheme" content="light dark" />
+</head>
+<body>
+
+<header class="site-header">
+  <a class="brand" href="index.html">
+    <img src="images/logo-square.png" alt="Lafayette Homes logo" />
+    <span>Lafayette Homes</span>
+  </a>
+  <nav class="site-nav">
+    <a href="index.html#services">Why Lafayette</a>
+    <a href="index.html#plans">Plans</a>
+    <a href="builds.html">Available</a>
+    <a href="index.html#process">Process</a>
+    <a href="index.html#gallery">Gallery</a>
+    <a class="btn primary" href="index.html#contact">Schedule a Tour</a>
+  </nav>
+</header>
+
+<main id="content" class="container">
+  <section class="hero small">
+    <h1 class="h1" id="thanks-title">Thanks!</h1>
+    <p class="muted" id="thanks-sub">We got your message and we’ll reach out shortly.</p>
+  </section>
+
+  <section class="card" style="margin-top:12px;">
+    <h2 class="h3">What happens next</h2>
+    <ul style="margin-top:8px; padding-left:18px;">
+      <li>We’ll text or email you within one business day.</li>
+      <li>If you included a lot address or pin, we’ll pull maps and utilities.</li>
+      <li>We’ll propose a quick call to talk plan options and budget.</li>
+    </ul>
+
+    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+      <a class="btn primary" href="index.html#contact">Send another message</a>
+      <a class="btn outline" href="builds.html">See current builds</a>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:12px;">
+    <h2 class="h3">Want to talk now?</h2>
+    <p class="muted">Skip the wait and reach us directly.</p>
+    <div style="margin-top:8px; display:flex; gap:10px; flex-wrap:wrap;">
+      <a class="btn" href="tel:+18645551234">Call</a>
+      <a class="btn" href="sms:+18645551234">Text</a>
+      <a class="btn" href="mailto:info@buildwithlafayette.com">Email</a>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <img src="images/logo-square.png" alt="Lafayette Homes logo" />
+      <p>Upstate South Carolina homebuilder — modern, efficient, site-smart homes.</p>
+    </div>
+    <nav class="footer-links">
+      <a href="index.html#services">Why Lafayette</a>
+      <a href="index.html#plans">Plans</a>
+      <a href="builds.html">Available</a>
+      <a href="index.html#process">Process</a>
+      <a href="index.html#gallery">Gallery</a>
+      <a href="index.html#contact">Contact</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+  // Personalize with ?name=Rian from the form submission
+  (function () {
+    const params = new URLSearchParams(location.search);
+    const name = (params.get('name') || '').trim();
+    if (name) {
+      const title = document.getElementById('thanks-title');
+      const sub = document.getElementById('thanks-sub');
+      title.textContent = `Thanks, ${name}!`;
+      sub.textContent = `We got your message and we’ll reach out shortly.`;
+    }
+  })();
+</script>
+
+</body>
+</html>

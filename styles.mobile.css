@@ -1,0 +1,32 @@
+/* styles.mobile.css — overrides for ≤768px */
+
+:root { --pad: clamp(16px, 4vw, 22px); }
+.container{ width:100%; padding:0 var(--pad); }
+
+.site-header{ padding:10px var(--pad); gap:10px; }
+.nav{ gap:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.nav::-webkit-scrollbar{ display:none; }
+.call-chip{ padding:8px 12px; font-size:14px; border-radius:12px; }
+
+.hero{ min-height: 64vh; }
+.hero-inner{ padding:64px 0 24px; }
+.hero-title{ font-size: clamp(32px, 8.5vw, 42px); }
+.hero-sub{ font-size:16px; max-width: 42ch; }
+.hero-ctas{ display:grid; grid-template-columns:1fr; gap:10px; }
+.btn{ width:100%; }
+
+/* … your existing mobile rules … */
+
+.footer-grid{ flex-direction:column; align-items:flex-start; gap:8px; }
+
+/* Builds page */
+.build-card{ grid-template-columns:1fr !important; }
+.build-thumb{ height:220px; }
+
+/* Tighten hero on the Builds page (remove big blank gap on mobile) */
+.hero.small{
+  min-height: auto !important;
+  padding: 12px 0 6px !important;
+}
+.hero.small .h1{ margin: 0 0 6px; }
+.hero.small .muted{ margin: 0; }

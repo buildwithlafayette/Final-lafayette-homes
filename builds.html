@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Available Homes — Lafayette Homes</title>
+  <link rel="stylesheet" href="styles.css?v=20" />
+  <!-- Advertise support for light and dark themes -->
+  <meta name="color-scheme" content="light dark" />
+  <link rel="stylesheet" href="styles/available-homes.css" />
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+
+<header class="site-header" role="banner">
+  <a class="brand" href="index.html">
+    <img src="images/logo-square.png" alt="Lafayette Homes logo" width="36" height="36" />
+    <span>Lafayette Homes</span>
+  </a>
+  <nav class="site-nav" role="navigation" aria-label="Main">
+    <a href="index.html#services">Why Lafayette</a>
+    <a href="index.html#plans">Plans</a>
+    <a href="builds.html" aria-current="page">Available Homes</a>
+      <a class="btn primary" href="schedule.html">Our Realtor</a>
+    <a href="index.html#process">Process</a>
+    <a href="index.html#gallery">Gallery</a>
+    
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" title="Toggle light/dark">
+      <span class="emoji" aria-hidden="true">☀️</span><span class="label">Light</span>
+    </button>
+  </nav>
+</header>
+
+
+<main id="content" class="container">
+  <h1>Available Homes</h1>
+  <div class="lh-grid" aria-live="polite"></div>
+<!-- Collapsible CTA -->
+<!-- moved into main -->
+<div class="container schedule-toggle-wrap" style="padding:0 0 0">
+  <button id="schedule-toggle" class="btn primary" aria-expanded="false" aria-controls="schedule-tour">
+    Schedule a Tour
+  </button>
+</div>
+
+
+</main>
+
+
+<footer class="site-footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <img src="images/logo-square.png" alt="Lafayette Homes logo" width="40" height="40" />
+      <p>Lafayette Homes · Upstate South Carolina<br>
+        <a href="tel:+18645551234">+1 (864) 555-1234</a> ·
+        <a href="mailto:info@buildwithlafayette.com">info@buildwithlafayette.com</a>
+      </p>
+    </div>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="index.html#services">Why Lafayette</a>
+      <a href="index.html#plans">Plans</a>
+      <a href="builds.html">Available</a>
+      <a href="index.html#process">Process</a>
+      <a href="index.html#gallery">Gallery</a>
+      <a href="index.html#contact">Contact</a>
+    </nav>
+  </div>
+</footer>
+
+<div id="lightbox" class="lightbox" aria-hidden="true">
+  <button class="lightbox-close" aria-label="Close">×</button>
+  <img src="" alt="" />
+</div>
+
+<script src="main.js?v=9" defer></script>
+
+<!-- Listing Modal -->
+<div id="lh-modal" class="lh-modal" aria-hidden="true">
+  <div class="lh-modal-dialog" role="dialog" aria-modal="true" aria-label="Listing details">
+    <button class="lh-modal-close" aria-label="Close">×</button>
+    <div class="lh-modal-body"></div>
+  </div>
+</div>
+
+<!-- Schedule a Tour (Netlify form) -->
+
+<section id="schedule-tour" class="container is-collapsed" style="padding:0 0 2rem">
+  <h2>Schedule a Tour</h2>
+  <div class="host-card">
+    <img class="host-photo" src="images/kara.jpg" alt="Kara Lafayette headshot" width="96" height="96" />
+    <div class="host-meta">
+      <strong>Kara Lafayette</strong>
+      <span>Realtor® • (864) 756-1313 • <a href="mailto:kara@buildwithlafayette.com">kara@buildwithlafayette.com</a></span>
+      <span class="subtle">Tell us which home and when you’d like to see it—Kara will confirm ASAP.</span>
+    </div>
+  </div>
+  <form class="card form realtor-form" data-netlify="true" method="POST">
+        <input type="text" name="_gotcha" autocomplete="off" tabindex="-1" style="position:absolute; left:-5000px; height:0; width:0; opacity:0;" />
+        <input type="hidden" id="listing-ref" name="listing" value="">
+        <div class="row two-col">
+          <div><label for="name">Name</label><input id="name" name="name" placeholder="Your name" required /></div>
+          <div><label for="phone">Phone</label><input id="phone" name="phone" placeholder="(864) 555‑1234" /></div>
+          <div><label for="email">Email</label><input id="email" name="email" type="email" placeholder="you@example.com" required /></div>
+          <div><label for="location">Build location</label><input id="location" name="location" placeholder="City / address / pin" /></div>
+        </div>
+        <div class="row one-col">
+          <div><label for="notes">Notes</label><textarea id="notes" name="notes" rows="5" placeholder="Tell us about your lot, preferred plan or custom ideas, timing and budget…"></textarea></div>
+        </div>
+        <div class="btn-row mt-12">
+          <button class="btn primary" type="submit">Send</button>
+          <a class="btn outline" href="builds.html">See available homes</a>
+        </div>
+      
+</section>
+
+<script src="builds.js"></script>
+
+</body>
+</html>

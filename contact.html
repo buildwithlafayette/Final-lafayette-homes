@@ -1,0 +1,33 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Contact • Schedule a Tour</title>
+<link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="styles/main.css"><link rel="stylesheet" href="styles/base.css">
+</head><body>
+<main class="container">
+  <h1>Contact • Schedule a Tour</h1>
+  <div class="realtor-card" style="display:flex;gap:12px;align-items:center;border:1px solid rgba(0,0,0,.15);border-radius:12px;padding:12px 14px;margin:8px 0 16px">
+    <img src="images/kara.jpg" alt="Kara Lafayette" style="width:80px;height:80px;border-radius:999px;object-fit:cover">
+    <div><strong>Kara Lafayette</strong><br>
+      Cell: <a href="tel:18646339745">(864) 633-9745</a> • Office: <a href="tel:18647561313">(864) 756-1313</a><br>
+      Email: <a href="mailto:kara@buildwithlafayette.com">kara@buildwithlafayette.com</a>
+    </div>
+  </div>
+  <form name="tour" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+    <input type="hidden" name="form-name" value="tour">
+    <p style="display:none"><label>Bot <input name="bot-field"></label></p>
+    <p><label>Listing <input name="listing" id="listing"></label></p>
+    <p><label>Your Name <input name="name" required></label></p>
+    <p><label>Email <input name="email" type="email" required></label></p>
+    <p><label>Phone <input name="phone" type="tel"></label></p>
+    <p><label>Preferred Time <input name="time"></label></p>
+    <p><label>Message <textarea name="message" rows="4"></textarea></label></p>
+    <p><button type="submit">Send request</button></p>
+  </form>
+</main>
+<script>
+(function(){
+  var p=new URLSearchParams(location.search);
+  var l=p.get('listing');
+  if(l){ var el=document.getElementById('listing'); if(el) el.value=l; }
+})();
+</script>
+</body></html>

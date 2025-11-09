@@ -1,0 +1,93 @@
+
+/* Available Homes grid/cards */
+.lh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.25rem;padding:1rem 0}
+.lh-card{position:relative;border-radius:1rem;overflow:hidden;border:1px solid color-mix(in oklab, CanvasText 10%, transparent);background:color-mix(in oklab, Canvas 92%, CanvasText 8%);color:CanvasText;box-shadow:0 6px 16px rgba(0,0,0,.15);cursor:pointer}
+.lh-status{position:absolute;z-index:2;top:.75rem;left:.75rem;background:color-mix(in oklab, CanvasText 85%, transparent);color:Canvas;padding:.25rem .6rem;border-radius:999px;font-size:.8rem;backdrop-filter:blur(4px)}
+.lh-photo-wrap{position:relative;width:100%;aspect-ratio:16/10;background:#0a0a0a}
+.lh-photo{width:100%;height:100%;object-fit:cover;display:block}
+.lh-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:none;color:#fff;width:36px;height:36px;border-radius:999px;cursor:pointer;font-size:1.2rem;display:grid;place-items:center}
+.lh-arrow.left{left:.5rem}.lh-arrow.right{right:.5rem}
+.lh-counter{position:absolute;bottom:.5rem;right:.5rem;background:rgba(0,0,0,.55);color:#fff;padding:.15rem .5rem;border-radius:999px;font-size:.75rem}
+.lh-body{padding:.9rem 1rem 1rem}
+.lh-price{font-weight:700;font-size:1.25rem;margin-bottom:.25rem}
+.lh-title{font-size:1.05rem;font-weight:600}
+.lh-subtitle{opacity:.8;margin-top:.1rem;font-size:.9rem}
+.lh-meta{display:flex;gap:.4rem;align-items:center;margin-top:.5rem;opacity:.9;font-size:.9rem}
+.lh-links{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-top:.6rem}
+.lh-link{text-decoration:underline}
+.lh-chip{background:color-mix(in oklab, CanvasText 10%, transparent);padding:.2rem .5rem;border-radius:999px;font-size:.8rem}
+
+/* Modal */
+.lh-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:1rem;z-index:9999}
+.lh-modal.open{display:flex}
+.lh-modal-dialog{background:Canvas;border:1px solid color-mix(in oklab, CanvasText 12%, transparent);color:CanvasText;max-width:1100px;width:100%;border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);position:relative}
+.lh-modal-close{position:absolute;top:.75rem;right:.75rem;background:rgba(0,0,0,.65);color:#fff;border:none;width:36px;height:36px;border-radius:999px;font-size:1.2rem;cursor:pointer}
+@media (prefers-color-scheme:light){.lh-modal-close{background:rgba(0,0,0,.5)}}
+.lh-modal-body{display:grid;grid-template-columns:1.2fr .8fr;gap:0}
+@media (max-width:900px){.lh-modal-body{grid-template-columns:1fr}}
+.lh-modal-media{position:relative;background:#0a0a0a;min-height:360px}
+.lh-modal-photo{width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:16/10}
+.lh-marrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:none;color:#fff;width:40px;height:40px;border-radius:999px;cursor:pointer;font-size:1.3rem;display:grid;place-items:center}
+.lh-marrow.left{left:.5rem}.lh-marrow.right{right:.5rem}
+.lh-mcounter{position:absolute;bottom:.5rem;right:.5rem;background:rgba(0,0,0,.55);color:#fff;padding:.2rem .6rem;border-radius:999px;font-size:.8rem}
+.lh-modal-info{padding:1rem 1.2rem}
+.lh-modal-info h2{margin:.2rem 0 .2rem}
+.lh-m-sub{opacity:.8;margin:.1rem 0 .4rem}
+.lh-m-price{font-weight:600;margin:.3rem 0 1rem}
+.lh-m-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:.6rem .9rem;border-radius:999px;border:1px solid color-mix(in oklab, CanvasText 18%, transparent);cursor:pointer;text-decoration:none}
+.btn.primary{background:color-mix(in oklab, CanvasText 92%, Canvas 8%);color:Canvas}
+.btn.outline{background:transparent}
+
+/* Host card + form */
+.host-card{display:flex;gap:1rem;align-items:center;background:color-mix(in oklab, Canvas 96%, CanvasText 4%);border:1px solid color-mix(in oklab, CanvasText 12%, transparent);padding:1rem;border-radius:14px;margin:.5rem 0 1rem}
+.host-photo{width:72px;height:72px;border-radius:50%;object-fit:cover}
+.host-meta{display:flex;flex-direction:column;gap:.15rem}
+.host-meta .subtle{opacity:.8}
+#schedule-tour form{background:color-mix(in oklab, Canvas 98%, CanvasText 2%);border:1px solid color-mix(in oklab, CanvasText 12%, transparent);padding:1rem;border-radius:14px;margin-top:1rem}
+#schedule-tour .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.75rem;margin-top:1rem}
+#schedule-tour input,#schedule-tour textarea{width:100%;padding:.6rem .7rem;border:1px solid color-mix(in oklab, CanvasText 18%, transparent);border-radius:8px;background:Canvas;color:CanvasText}
+#schedule-tour label{display:flex;flex-direction:column;gap:.25rem;font-weight:600}
+#schedule-tour input:focus,#schedule-tour textarea:focus{outline:2px solid color-mix(in oklab, Highlight 60%, CanvasText 20%);outline-offset:1px}
+#schedule-tour button.btn.primary{font-weight:700}
+
+.lh-cta{margin-top:.6rem}
+.lh-cta .btn{font-weight:600}
+
+.btn.small{padding:.4rem .7rem;font-size:.9rem;border-radius:999px}
+
+/* tweak links row */
+.lh-links{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+
+
+/* ensure card CTA uses brand green (override any generic .btn.primary in this file) */
+.lh-links .btn.primary{ color:#fff; background:linear-gradient(180deg,#1a7c50,#0b4a2c); border-color:#0e3d27; box-shadow:var(--shadow); }
+.lh-links .btn.primary:hover{ transform:translateY(-1px); }
+.lh-links .btn.primary:active{ transform:translateY(0); opacity:.95; }
+
+
+/* Nav primary button color on Available Homes (enforced) */
+.site-header .site-nav .btn.primary{ color:#fff; background:linear-gradient(180deg,#1a7c50,#0b4a2c); border-color:#0e3d27; box-shadow:var(--shadow); }
+
+
+/* === THEME-SAFE SCHEDULE FORM (overrides conflicting rules) === */
+#schedule-tour form{ background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:16px; padding:16px; box-shadow:var(--shadow); }
+#schedule-tour .row.two-col{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+#schedule-tour label{ display:block; font-weight:750; margin:0 0 6px; letter-spacing:.2px; }
+#schedule-tour input, #schedule-tour textarea, #schedule-tour select{
+  width:100%; background:var(--field-bg); color:var(--field-text);
+  border:1.5px solid var(--field-border); border-radius:12px; padding:12px 14px;
+}
+#schedule-tour textarea{ min-height:110px; height:auto; resize:vertical; }
+#schedule-tour input:focus, #schedule-tour textarea:focus{
+  outline:2px solid var(--ring); outline-offset:1px;
+}
+#schedule-tour .btn-row{ display:flex; gap:.6rem; flex-wrap:wrap; margin-top:12px; }
+
+
+/* AH schedule form token override */
+#schedule-tour .realtor-card{background:var(--card);color:var(--fg);border:1px solid var(--line)}
+#schedule-tour input,#schedule-tour textarea,#schedule-tour select{background:var(--field-bg);color:var(--field-text);border:1.5px solid var(--field-border)}
+
+/* Realtor card hard override (AH) */
+#schedule-tour .realtor-card{background:var(--card) !important; color:var(--fg) !important; border:1px solid var(--line) !important;}

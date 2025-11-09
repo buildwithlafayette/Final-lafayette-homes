@@ -1,0 +1,102 @@
+[
+  {
+    "id": "281-loch",
+    "address": "281 Loch Lomond Dr, Pickens SC",
+    "city": "Pickens",
+    "state": "SC",
+    "sqft": 3089,
+    "beds": 4,
+    "baths": 3,
+    "status": "for sale",
+    "zillowUrl": "https://www.zillow.com/homedetails/281-Loch-Lomond-Dr-Pickens-SC-29671/449918963_zpid/",
+    "photos": [
+      "images/listings/281-loch/01.webp",
+      "images/listings/281-loch/02.webp",
+      "images/listings/281-loch/03.webp",
+      "images/listings/281-loch/04.webp",
+      "images/listings/281-loch/05.webp",
+      "images/listings/281-loch/06.webp"
+    ],
+    "price": 599000
+  },
+  {
+    "id": "2610-dogleg",
+    "address": "2610 Dog Leg Ln, Seneca SC",
+    "city": "Seneca",
+    "state": "SC",
+    "sqft": 3440,
+    "beds": 5,
+    "baths": 4,
+    "status": "for sale",
+    "zillowUrl": "https://www.zillow.com/homedetails/2610-Dog-Leg-Ln-Seneca-SC-29678/218235828_zpid/",
+    "photos": [
+      "images/listings/2610-dogleg/01.webp",
+      "images/listings/2610-dogleg/02.webp",
+      "images/listings/2610-dogleg/03.webp",
+      "images/listings/2610-dogleg/04.webp",
+      "images/listings/2610-dogleg/05.webp",
+      "images/listings/2610-dogleg/06.webp"
+    ],
+    "price": 797900
+  },
+  {
+    "id": "108-horseshoe",
+    "address": "108 Horseshoe Bend Rd, Easley SC",
+    "city": "Easley",
+    "state": "SC",
+    "sqft": 3300,
+    "beds": 3,
+    "baths": 5,
+    "status": "under contract",
+    "zillowUrl": "https://www.zillow.com/homedetails/108-Horseshoe-Bend-Rd-Easley-SC-29642/454832761_zpid/",
+    "photos": [
+      "images/listings/108-horseshoe/01.webp",
+      "images/listings/108-horseshoe/02.webp",
+      "images/listings/108-horseshoe/03.webp",
+      "images/listings/108-horseshoe/04.webp",
+      "images/listings/108-horseshoe/05.webp",
+      "images/listings/108-horseshoe/06.webp"
+    ],
+    "price": 714989
+  },
+  {
+    "id": "215-moore",
+    "address": "215 Moore Rd, Liberty SC",
+    "city": "Liberty",
+    "state": "SC",
+    "sqft": 2152,
+    "beds": 4,
+    "baths": 3,
+    "status": "for sale",
+    "zillowUrl": "https://www.zillow.com/homedetails/215-Moore-Rd-Liberty-SC-29657/453595713_zpid/",
+    "photos": [
+      "images/listings/215-moore/01.webp",
+      "images/listings/215-moore/02.webp",
+      "images/listings/215-moore/03.webp",
+      "images/listings/215-moore/04.webp",
+      "images/listings/215-moore/05.webp",
+      "images/listings/215-moore/06.webp"
+    ],
+    "price": 480000
+  },
+  {
+    "id": "2929-old-greenville",
+    "address": "2929 Old Greenville Hwy, Central SC",
+    "city": "Central",
+    "state": "SC",
+    "sqft": 2080,
+    "beds": 3,
+    "baths": 2,
+    "status": "sold",
+    "zillowUrl": "https://www.zillow.com/homedetails/2929-Old-Greenville-Hwy-Central-SC-29630/444395042_zpid/",
+    "photos": [
+      "images/listings/2929-old-greenville/01.webp",
+      "images/listings/2929-old-greenville/02.webp",
+      "images/listings/2929-old-greenville/03.webp",
+      "images/listings/2929-old-greenville/04.webp",
+      "images/listings/2929-old-greenville/05.webp",
+      "images/listings/2929-old-greenville/06.webp"
+    ],
+    "price": 432900
+  }
+]
