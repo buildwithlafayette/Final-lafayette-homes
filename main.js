@@ -174,3 +174,166 @@ function trapFocusKeydown(e, container) {
     btn.addEventListener('click', ()=> api.openAt(0));
   });
 })();
+/* ==========================================================
+   LAFAYETTE HOMES – HAMBURGER HEADER (NO HTML EDITS REQUIRED)
+   How to use: paste this at the BOTTOM of main.js
+   It will:
+     • ensure <meta name="viewport"...> exists
+     • inject all CSS for the header/drawer
+     • create/replace a mobile-friendly header with a hamburger
+     • wire up backdrop tap + Esc to close, lock body scroll
+   ========================================================== */
+(function () {
+  document.addEventListener('DOMContentLoaded', () => {
+    ensureViewport();
+    injectNavCSS();
+    buildOrReplaceHeader();
+    wireNav();
+  });
+
+  function ensureViewport() {
+    const has = !!document.querySelector('meta[name="viewport"]');
+    if (!has) {
+      const m = document.createElement('meta');
+      m.name = 'viewport';
+      m.content = 'width=device-width, initial-scale=1, viewport-fit=cover';
+      document.head.appendChild(m);
+    }
+  }
+
+  function injectNavCSS() {
+    if (document.getElementById('lh-nav-style')) return;
+    const css = `
+:root { --gutter: 16px; --nav-w: 86vw; --drawer-bg:#111; }
+@media (prefers-color-scheme: light){ :root { --drawer-bg:#fff; } }
+
+html, body { max-width: 100%; overflow-x: hidden; }
+
+/* Buttons (kept generic so it blends with your site) */
+.lh-btn { display:inline-flex; align-items:center; justify-content:center; gap:.4rem;
+  border-radius:12px; padding:10px 16px; font-weight:600; border:1px solid transparent; text-decoration:none; }
+.lh-btn.small { padding:8px 12px; font-size:14px; }
+.lh-btn.realtor { background:#0b5; color:#fff; }
+.lh-theme-toggle { background:#eee; color:#111; border:1px solid rgba(0,0,0,.1); }
+@media (prefers-color-scheme: dark){
+  .lh-theme-toggle { background:#1d1d1d; color:#eee; border-color:rgba(255,255,255,.12); }
+}
+
+/* Header (desktop) */
+.lh-header {
+  position:relative; z-index:200; display:grid; grid-template-columns:auto 1fr auto;
+  align-items:center; gap:16px; padding:12px var(--gutter); background:transparent;
+}
+.lh-logo { display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
+.lh-logo img { height:32px; width:32px; border-radius:8px; }
+.lh-logo-text { font-weight:800; font-size:18px; }
+.lh-nav { display:flex; gap:16px; align-items:center; }
+.lh-nav a { text-decoration:none; color:inherit; }
+
+/* Hamburger button (hidden on desktop) */
+.lh-hamburger { display:none; position:relative; width:42px; height:34px;
+  border:1px solid rgba(0,0,0,.15); border-radius:10px; background:transparent; color:inherit; }
+.lh-hamburger span { position:absolute; left:8px; right:8px; height:2px; background:currentColor; border-radius:2px; }
+.lh-hamburger span:nth-child(1){ top:10px; } .lh-hamburger span:nth-child(2){ top:16px; } .lh-hamburger span:nth-child(3){ top:22px; }
+
+/* Mobile drawer + backdrop + compact header */
+@media (max-width: 900px){
+  .lh-header { grid-template-columns:auto auto 1fr; padding:8px var(--gutter) 6px; }
+  .lh-logo img { height:28px; width:28px; }
+  .lh-logo-text { font-size:16px; }
+
+  .lh-hamburger { display:inline-flex; align-items:center; justify-content:center; margin-left:auto; }
+
+  .lh-nav {
+    position:fixed; z-index:10001; top:0; right:0; height:100%;
+    width:var(--nav-w); max-width:420px; background:var(--drawer-bg);
+    border-left:1px solid rgba(255,255,255,.08);
+    transform:translateX(100%); transition:transform .25s ease;
+    display:flex; flex-direction:column; align-items:stretch; padding:18px;
+    box-shadow:-20px 0 50px rgba(0,0,0,.35);
+  }
+  .lh-nav a { padding:12px 14px; border-radius:12px; font-size:16px; }
+  .lh-nav a.lh-active { font-weight:800; }
+  .lh-nav .lh-btn, .lh-nav .lh-theme-toggle { margin-top:8px; }
+
+  .lh-nav-backdrop {
+    position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:10000; backdrop-filter:blur(2px);
+  }
+  .lh-nav-backdrop[hidden] { display:none; }
+
+  .lh-nav-open .lh-nav { transform:translateX(0); }
+  .lh-no-scroll { overflow:hidden; }
+}
+    `.trim();
+    const style = document.createElement('style');
+    style.id = 'lh-nav-style';
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  function buildOrReplaceHeader() {
+    // If a header exists, replace its innerHTML. If not, create one at top of body.
+    let header = document.querySelector('header');
+    const templateHTML = `
+      <a class="lh-logo" href="/">
+        <img src="/assets/logo.png" alt="Lafayette Homes">
+        <span class="lh-logo-text">Lafayette Homes</span>
+      </a>
+
+      <button class="lh-hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="lhPrimaryNav">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav id="lhPrimaryNav" class="lh-nav" role="navigation" aria-label="Primary">
+        <a href="/why.html">Why Lafayette</a>
+        <a href="/plans.html">Plans</a>
+        <a href="/available.html" class="lh-active">Available Homes</a>
+        <a href="/process.html">Process</a>
+        <a href="/gallery.html">Gallery</a>
+        <a class="lh-btn small realtor" href="/realtor.html">Our Realtor</a>
+        <button class="lh-btn small lh-theme-toggle" type="button" id="lhThemeToggle">Light</button>
+      </nav>
+
+      <div class="lh-nav-backdrop" hidden></div>
+    `;
+
+    if (!header) {
+      header = document.createElement('header');
+      document.body.prepend(header);
+    }
+    header.classList.add('lh-header');
+    header.innerHTML = templateHTML;
+  }
+
+  function wireNav() {
+    const html = document.documentElement;
+    const btn = document.querySelector('.lh-hamburger');
+    const nav = document.getElementById('lhPrimaryNav');
+    const backdrop = document.querySelector('.lh-nav-backdrop');
+    if (!btn || !nav || !backdrop) return;
+
+    const open = () => {
+      html.classList.add('lh-nav-open','lh-no-scroll');
+      btn.setAttribute('aria-expanded','true');
+      backdrop.hidden = false;
+      (nav.querySelector('a,button,input,select,textarea') || btn).focus?.({preventScroll:true});
+    };
+    const close = () => {
+      html.classList.remove('lh-nav-open','lh-no-scroll');
+      btn.setAttribute('aria-expanded','false');
+      backdrop.hidden = true;
+      btn.focus?.({preventScroll:true});
+    };
+
+    btn.addEventListener('click', () => (btn.getAttribute('aria-expanded') === 'true' ? close() : open()));
+    backdrop.addEventListener('click', close);
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+
+    // Close when a nav link (not theme toggle) is clicked
+    nav.addEventListener('click', (e) => {
+      const t = e.target.closest('a,button'); if (!t) return;
+      if (t.id === 'lhThemeToggle') return; // keep drawer open for theme toggle
+      close();
+    });
+  }
+})();
