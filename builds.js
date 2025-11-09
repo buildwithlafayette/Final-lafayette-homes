@@ -2,22 +2,20 @@
    Lafayette Homes – builds.js
    Layout: big image left, details right, single lightbox
    Status colors: Available=green, Under Contract=yellow, Sold=red
-   Mobile: swipe left/right, backdrop tap to close, fixed close button
+   Mobile: swipe left/right, backdrop/dead-space tap to close, fixed close button
    CTA: bottom Schedule button always navigates to schedule.html
-   Zillow button: brand blue so it stands out in Light mode
+   Zillow button: brand blue
    ========================== */
 
 (function () {
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
-    injectCSS(); // modal styles + mobile tweaks + Zillow button
+    injectCSS();
 
-    // Load listings
     const res = await fetch('availableHomes.json', { cache: 'no-store' });
     const homes = await res.json();
 
-    // Sort: Available → Under Contract → Sold, then price desc
     const order = { 'Available': 0, 'Under Contract': 1, 'Sold': 2 };
     homes.sort((a, b) => {
       const s = (order[a.status] ?? 9) - (order[b.status] ?? 9);
@@ -25,12 +23,10 @@
       return (b.price ?? 0) - (a.price ?? 0);
     });
 
-    // Render cards
     const grid = document.querySelector('.lh-grid');
     if (!grid) return;
     grid.innerHTML = homes.map(renderCard).join('');
 
-    // Wire cards → open modal at image 0
     const idMap = Object.fromEntries(homes.map(h => [String(h.id), h]));
     grid.querySelectorAll('.lh-card').forEach(card => {
       card.addEventListener('click', () => {
@@ -39,7 +35,6 @@
         if (!home) return;
         openModal(home, 0);
       });
-      // View Photos button (stops click-through to card)
       card.querySelector('.view-photos')?.addEventListener('click', e => {
         e.stopPropagation();
         const id = card.getAttribute('data-id');
@@ -49,12 +44,10 @@
       });
     });
 
-    // Keep the bottom-page CTA reliable
     wireScheduleCTAs();
   }
 
   function wireScheduleCTAs() {
-    // anything that looks like the bottom CTA will just go to schedule.html
     document.querySelectorAll(
       '#schedule-toggle, .schedule-cta, .cta-schedule, a[href="#schedule"]'
     ).forEach(el => {
@@ -66,7 +59,6 @@
     });
   }
 
-  /* ---------- card markup ---------- */
   function getStatusClass(status) {
     const s = (status || '').toLowerCase();
     if (s === 'sold') return 'sold';
@@ -118,7 +110,7 @@
 
   /* ----------------------- modal ----------------------- */
   function openModal(home, startIndex) {
-    closeModal(); // ensure only one
+    closeModal();
 
     const photos = (home.photos || []).slice();
     const count = Math.max(photos.length, 1);
@@ -174,6 +166,7 @@
     const left  = root.querySelector('.lb-left');
     const right = root.querySelector('.lb-right');
     const stage = root.querySelector('.lb-stage-inner');
+    const shell = root.querySelector('.lb-shell');
 
     function show(i) {
       index = (i + count) % count;
@@ -189,7 +182,17 @@
       el.addEventListener('click', closeModal)
     );
 
-    // keyboard
+    // NEW: click any "dead space" inside the shell—but NOT the image or details—closes
+    shell?.addEventListener('click', (e) => {
+      const t = e.target;
+      const clickedImage = t.closest && t.closest('.lb-stage-inner');
+      const clickedPanel = t.closest && t.closest('.lb-panel');
+      const clickedArrow = t.closest && t.closest('.lb-arrow');
+      if (!clickedImage && !clickedPanel && !clickedArrow) {
+        closeModal();
+      }
+    });
+
     const keyHandler = (e) => {
       if (!document.getElementById('lh-lightbox')) {
         window.removeEventListener('keydown', keyHandler);
@@ -201,40 +204,24 @@
     };
     window.addEventListener('keydown', keyHandler);
 
-    // --- TOUCH / SWIPE on mobile (and pointer fallback) ---
+    // TOUCH / SWIPE
     if (stage && count > 1) {
       let startX = 0, lastX = 0, active = false, startTime = 0;
-
-      const getX = (ev) =>
-        ev.touches && ev.touches.length ? ev.touches[0].clientX : ev.clientX;
-
-      const onStart = (ev) => {
-        active = true;
-        startX = lastX = getX(ev);
-        startTime = Date.now();
-      };
-      const onMove = (ev) => {
-        if (!active) return;
-        lastX = getX(ev);
-      };
-      const onEnd = () => {
+      const getX = (ev) => (ev.touches && ev.touches.length ? ev.touches[0].clientX : ev.clientX);
+      const onStart = (ev) => { active = true; startX = lastX = getX(ev); startTime = Date.now(); };
+      const onMove  = (ev) => { if (active) lastX = getX(ev); };
+      const onEnd   = () => {
         if (!active) return;
         active = false;
         const dx = lastX - startX;
         const dt = Date.now() - startTime;
-
         const fast = Math.abs(dx) > 25 && dt < 250;
         const long = Math.abs(dx) > 60;
-        if (fast || long) {
-          if (dx < 0) show(index + 1);
-          else show(index - 1);
-        }
+        if (fast || long) show(dx < 0 ? index + 1 : index - 1);
       };
-
       stage.addEventListener('touchstart', onStart, { passive: true });
-      stage.addEventListener('touchmove', onMove,  { passive: true });
-      stage.addEventListener('touchend',  onEnd,   { passive: true });
-
+      stage.addEventListener('touchmove',  onMove,  { passive: true });
+      stage.addEventListener('touchend',   onEnd,   { passive: true });
       stage.addEventListener('pointerdown', onStart);
       stage.addEventListener('pointermove', onMove);
       stage.addEventListener('pointerup',   onEnd);
@@ -247,31 +234,17 @@
     document.documentElement.classList.remove('lb-noscroll');
   }
 
-  /* ----------------------- CSS injector ----------------------- */
+  /* ----------------------- CSS ----------------------- */
   function injectCSS() {
     if (document.getElementById('lb-style')) return;
     const css = `
-      /* basic buttons */
       .btn { display:inline-flex; align-items:center; justify-content:center; border-radius:12px; padding:10px 16px; font-weight:600; border:1px solid transparent; }
       .btn.primary { background:#fff; color:#0c0c0c; }
-
-      /* Zillow brand button (pops in light mode, still strong in dark) */
-      .btn.zillow {
-        background:#006AFF;           /* Zillow blue */
-        color:#fff;
-        border-color:rgba(0,0,0,0); 
-      }
+      .btn.zillow { background:#006AFF; color:#fff; border-color:transparent; }
       .btn.zillow:hover { filter:brightness(0.95); }
       .btn.zillow:active { transform: translateY(1px); }
       .btn.zillow:focus { outline:2px solid rgba(0,106,255,.35); outline-offset:2px; }
 
-      /* legacy ghost kept for other places, but not used for Zillow anymore */
-      .btn.ghost { background:transparent; border-color:rgba(255,255,255,.12); color:#cfcfcf; }
-      @media (prefers-color-scheme: light) {
-        .btn.ghost { border-color:rgba(0,0,0,.12); color:#333; }
-      }
-
-      /* grid thumbs */
       .aspect-16x9 { position:relative; width:100%; padding-top:56.25%; overflow:hidden; border-radius:20px; }
       .fit-cover { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#111; }
 
@@ -282,18 +255,15 @@
       .lh-card-meta { color:#cfcfcf; font-size:14px; margin-bottom:12px; }
       .lh-card-actions { display:flex; gap:10px; flex-wrap:wrap; }
 
-      /* Status badge */
       .lh-status { position:absolute; top:10px; left:10px; z-index:1; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:800; border:1px solid transparent; }
       .lh-status.available { background:rgba(20,175,90,.18); border-color:rgba(20,175,90,.25); color:#9cf0bd; }
       .lh-status.under-contract { background:rgba(255,213,0,.18); border-color:rgba(255,213,0,.35); color:#ffe37a; }
       .lh-status.sold { background:rgba(255,60,60,.18); border-color:rgba(255,60,60,.35); color:#ff9a9a; }
 
-      /* Lightbox root */
       .lb-noscroll { overflow:hidden; }
       #lh-lightbox { position:fixed; inset:0; z-index:9999; }
       #lh-lightbox .lb-overlay { position:absolute; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(2px); }
 
-      /* Fixed close button (viewport) */
       .lb-close-fixed {
         position:fixed; top:14px; right:14px; z-index:10000;
         width:40px; height:40px; border-radius:999px;
@@ -302,19 +272,15 @@
       }
 
       #lh-lightbox .lb-shell { position:absolute; inset:40px; display:flex; gap:24px; }
-
-      /* Left: image */
       .lb-stage { flex: 2 1 66%; min-width: 0; display:flex; align-items:center; justify-content:center; }
       .lb-stage-inner { position:relative; width:100%; max-height:calc(100vh - 160px); border-radius:20px; overflow:hidden; background:#0b0b0b; touch-action: pan-y; }
       .lb-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
 
-      /* Arrows + counter on image */
       .lb-arrow { position:absolute; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.35); color:#fff; font-size:26px; line-height:40px; text-align:center; cursor:pointer; }
       .lb-left  { left:12px; }
       .lb-right { right:12px; }
       .lb-counter { position:absolute; right:12px; bottom:12px; background:rgba(0,0,0,.5); color:#fff; font-weight:700; padding:6px 10px; border-radius:999px; font-size:12px; border:1px solid rgba(255,255,255,.18); }
 
-      /* Right: panel */
       .lb-panel { flex:1 1 34%; background:#1a1a1a; border:1px solid rgba(255,255,255,.09); border-radius:20px; padding:22px; color:#eaeaea; position:relative; }
       .lb-title { font-size:28px; font-weight:900; margin:4px 0 6px; color:#fff; }
       .lb-sub { color:#bdbdbd; margin-bottom:12px; }
@@ -323,7 +289,6 @@
       .lb-specs span { color:#d0d0d0; margin-right:8px; }
       .lb-actions { display:flex; gap:10px; flex-wrap:wrap; }
 
-      /* Mobile modal polish */
       @media (max-width: 1024px) {
         #lh-lightbox .lb-shell { inset:20px; flex-direction:column; gap:16px; }
         .lb-stage-inner { max-height:calc(100vh - 240px); border-radius:16px; }
