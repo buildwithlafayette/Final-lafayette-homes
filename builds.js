@@ -1,5 +1,5 @@
+/* Lafayette Homes – builds.js (single-file drop-in) */
 (function () {
-  /* ===================== INIT ===================== */
   document.addEventListener('DOMContentLoaded', init);
   window.addEventListener('pageshow', clearStuckOverlays);
 
@@ -9,7 +9,7 @@
     const res = await fetch('availableHomes.json', { cache: 'no-store' });
     const homes = await res.json();
 
-    // Sort: Available → Under Contract → Sold; then by price desc
+    // Order: Available → Under Contract → Sold; then by price desc
     const order = { "Available": 0, "Under Contract": 1, "Sold": 2 };
     homes.sort((a, b) => {
       const s = (order[a.status] ?? 9) - (order[b.status] ?? 9);
@@ -20,14 +20,17 @@
     const grid = document.querySelector('.lh-grid');
     grid.innerHTML = homes.map(renderCard).join('');
 
-    attachCardPhotoSliders();     // on-grid photo carousel
-    attachCardModal(homes);       // FULL-SCREEN modal (restored)
-    attachScheduleButtons(homes); // per-card schedule button
-    attachBottomScheduleCta();    // bottom page schedule CTA
+    // IMPORTANT: stop any image <a> / third-party lightbox from firing
+    disableImageAnchors();
+
+    attachCardPhotoSliders();
+    attachCardModal(homes);
+    attachScheduleButtons(homes);
+    attachBottomScheduleCta();
     wireForm();
   }
 
-  /* ===================== UTIL ===================== */
+  /* ---------------------- utilities ---------------------- */
   function money(n) {
     if (n === null || n === undefined || n === false) return 'TBD';
     const num = Number(n);
@@ -42,13 +45,13 @@
     document.body.classList.remove('modal-open', 'no-scroll');
   }
 
-  /* ===================== CARD RENDER ===================== */
+  /* -------------------- render cards --------------------- */
   function renderCard(h) {
     const photos = (h.photos || []).slice(0, 6);
     const first = photos[0] || '';
     return `
     <article class="lh-card" data-id="${h.id || ''}" tabindex="0" aria-label="Open details for ${h.address || ''}">
-      <div class="lh-status">${h.status || ''}</div>
+      ${h.status ? `<div class="lh-status">${h.status}</div>` : ``}
 
       <div class="lh-photo-wrap" data-index="0" data-count="${photos.length}">
         ${first
@@ -65,7 +68,7 @@
       <div class="lh-body">
         <div class="lh-price">${money(h.price)}</div>
         <div class="lh-title">${h.address || ''}</div>
-        <div class="lh-subtitle">${h.city || ''}, ${h.state || ''} ${h.zipcode || ''}</div>
+        <div class="lh-subtitle">${[h.city, h.state].filter(Boolean).join(', ')} ${h.zipcode || ''}</div>
 
         <div class="lh-meta">
           ${h.beds != null ? `<span>${plural(h.beds, 'Bed')}</span><span>•</span>` : ``}
@@ -82,7 +85,52 @@
     </article>`;
   }
 
-  /* ===================== GRID SLIDER ===================== */
+  /* --------- block native image/lightbox behaviour -------- */
+  function disableImageAnchors() {
+    // 1) If images are wrapped in anchors to image files, unwrap them
+    document.querySelectorAll('.lh-card .lh-photo-wrap a[href]').forEach(a => {
+      const href = a.getAttribute('href') || '';
+      if (/\.(jpe?g|png|webp|gif|svg)(\?.*)?$/i.test(href)) {
+        const kid = a.firstElementChild || a.firstChild;
+        if (kid) a.replaceWith(kid); // keep the IMG, remove anchor
+      }
+    });
+
+    // 2) Strip common lightbox data attributes
+    document.querySelectorAll('.lh-card [data-lightbox],[data-fslightbox],[data-lity]').forEach(el => {
+      el.removeAttribute('data-lightbox');
+      el.removeAttribute('data-fslightbox');
+      el.removeAttribute('data-lity');
+    });
+
+    // 3) Capture-phase guard: prevent any leftover image anchors in cards
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('.lh-card a[href]');
+      if (!a) return;
+      const href = a.getAttribute('href') || '';
+      if (/\.(jpe?g|png|webp|gif|svg)(\?.*)?$/i.test(href)) {
+        e.preventDefault();
+        e.stopPropagation();
+        a.blur();
+      }
+    }, true);
+
+    // 4) Also block on keydown/Enter
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const a = document.activeElement && document.activeElement.matches
+        ? (document.activeElement.matches('.lh-card a[href]') ? document.activeElement : null)
+        : null;
+      if (!a) return;
+      const href = a.getAttribute('href') || '';
+      if (/\.(jpe?g|png|webp|gif|svg)(\?.*)?$/i.test(href)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
+  }
+
+  /* ---------------- grid photo slider (inline) ----------- */
   function attachCardPhotoSliders() {
     document.querySelectorAll('.lh-photo-wrap').forEach(wrap => {
       let spans = [];
@@ -94,8 +142,11 @@
       const img = wrap.querySelector('.lh-photo');
       const counter = wrap.querySelector('.lh-counter');
 
+      // Prevent bubbling from arrows/image to the card (so card click doesn’t immediately open modal)
       wrap.addEventListener('click', (e) => {
-        if (e.target.closest('.lh-arrow') || e.target.classList.contains('lh-photo')) e.stopPropagation();
+        if (e.target.closest('.lh-arrow') || e.target.classList.contains('lh-photo')) {
+          e.stopPropagation();
+        }
       });
 
       if (photos.length < 2) return;
@@ -121,7 +172,7 @@
     });
   }
 
-  /* ===================== FULL SCREEN MODAL ===================== */
+  /* -------------------- full-screen modal ----------------- */
   function attachCardModal(homes) {
     const byId = Object.fromEntries(homes.map(h => [h.id, h]));
 
@@ -237,7 +288,7 @@
     document.body.classList.remove('modal-open');
   }
 
-  /* ===================== SCHEDULE BUTTONS ===================== */
+  /* ------------------ schedule buttons ------------------- */
   function attachScheduleButtons(homes) {
     const byId = Object.fromEntries(homes.map(h => [h.id, h]));
     document.querySelectorAll('.schedule-card-btn').forEach(btn => {
@@ -253,22 +304,16 @@
   }
 
   function attachBottomScheduleCta() {
-    // Prefer explicit hooks
-    let ctas = Array.from(document.querySelectorAll('#schedule-cta, .schedule-cta, [data-schedule], a[href="#schedule"]'));
-    if (ctas.length === 0) {
-      // Fallback: any "Schedule a Tour" button/link NOT inside a card/modal
-      ctas = Array.from(document.querySelectorAll('button, a')).filter(el => {
-        if (el.closest('.lh-card') || el.closest('#lh-modal')) return false;
-        const t = (el.textContent || el.innerText || '').trim().toLowerCase();
-        return t === 'schedule a tour';
-      });
-    }
-    ctas.forEach(cta => {
-      cta.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        openSchedulePanel(null);
-      });
+    const el = document.getElementById('schedule-cta')
+      || document.querySelector('.schedule-cta')
+      || document.querySelector('[data-schedule]')
+      || document.querySelector('a[href="#schedule"]');
+
+    if (!el) return;
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openSchedulePanel(null);
     });
   }
 
@@ -302,7 +347,7 @@
     if (panel) setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   }
 
-  /* ===================== FORM (noop) ===================== */
+  /* ----------------------- form -------------------------- */
   function wireForm() {
     const form = document.querySelector('.realtor-form');
     if (!form) return;
