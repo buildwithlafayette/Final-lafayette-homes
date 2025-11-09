@@ -337,3 +337,32 @@ html, body { max-width: 100%; overflow-x: hidden; }
     });
   }
 })();
+(function(){
+  const btn = document.querySelector('.lhm-hamburger');
+  const nav = document.getElementById('primaryNav');
+  const backdrop = document.querySelector('.lhm-backdrop');
+  if(!btn || !nav || !backdrop) return;
+
+  const open = () => {
+    document.documentElement.classList.add('lhm-open','lhm-noscroll');
+    btn.setAttribute('aria-expanded','true');
+    backdrop.hidden = false;
+    nav.querySelector('a,button')?.focus({preventScroll:true});
+  };
+  const close = () => {
+    document.documentElement.classList.remove('lhm-open','lhm-noscroll');
+    btn.setAttribute('aria-expanded','false');
+    backdrop.hidden = true;
+    btn.focus({preventScroll:true});
+  };
+
+  btn.addEventListener('click', () => (btn.getAttribute('aria-expanded')==='true'?close():open()));
+  backdrop.addEventListener('click', close);
+  window.addEventListener('keydown', e => { if(e.key==='Escape') close(); });
+  nav.addEventListener('click', e => {
+    const t = e.target.closest('a,button');
+    if (!t) return;
+    if (t.classList.contains('theme-toggle')) return; // let theme switch stay
+    close();
+  });
+})();
