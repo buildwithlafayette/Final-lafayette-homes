@@ -376,3 +376,69 @@ header, .header, .site-header {
 
 /* Prevent tiny off-by-1px overflow from rounded cards/shadows */
 .card, .panel, .hero, .gallery, .lh-card { overflow: hidden; border-radius: 20px; }
+/* ===== Mobile header compaction (add at end of styles.css) ===== */
+@media (max-width: 900px) {
+  /* tighten overall header padding */
+  header, .header, .site-header {
+    padding: 8px var(--gutter) 6px !important;
+  }
+
+  /* logo row: keep small and aligned */
+  header .logo, .header .logo, .site-header .logo {
+    display: flex; align-items: center; gap: 10px;
+    margin: 0 !important;
+  }
+  header .logo img, .header .logo img, .site-header .logo img {
+    height: 28px; width: 28px;
+  }
+
+  /* nav pills: single line, low height, horizontal scroll if needed */
+  header nav, .header nav, .site-header nav,
+  .nav, .primary-nav {
+    display: flex; align-items: center;
+    gap: 10px; padding: 4px 0 !important;
+    overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 4px 0 0 !important;
+  }
+  header nav::-webkit-scrollbar, .nav::-webkit-scrollbar { display: none; }
+  header nav a, .nav a, .primary-nav a {
+    font-size: 14px; line-height: 1; padding: 6px 8px !important;
+    white-space: nowrap;
+  }
+
+  /* shrink header buttons/chips (Our Realtor, Light/Dark) */
+  header .btn, .header .btn, .site-header .btn,
+  header .chip, .site-header .chip, .theme-toggle {
+    padding: 8px 12px !important; font-size: 14px !important;
+    border-radius: 12px !important;
+    margin: 4px 0 0 !important;
+  }
+
+  /* collapse any accidental extra spacing between header rows */
+  header > * + *, .header > * + *, .site-header > * + * {
+    margin-top: 6px !important;
+  }
+
+  /* pull main content up a bit */
+  main { padding-top: 4px !important; }
+
+  /* page titles on mobile (e.g., "Available Homes") */
+  h1, .page-title, .section-title {
+    font-size: clamp(26px, 6vw, 34px) !important;
+    line-height: 1.1 !important;
+    margin: 10px 0 8px !important;
+  }
+
+  /* first section shouldn’t add big top margin */
+  main > section:first-of-type,
+  .content > section:first-of-type {
+    margin-top: 4px !important;
+  }
+}
+
+/* guard against sideways scroll from shadows/rounded cards at the top */
+@media (max-width: 900px) {
+  .hero, .card, .panel, .lh-card, .page-header { overflow: hidden; }
+}
