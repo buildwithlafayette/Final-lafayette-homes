@@ -17,10 +17,9 @@
     const grid = document.querySelector('.lh-grid');
     grid.innerHTML = homes.map(renderCard).join('');
 
-    attachSliders();                 // arrows + keyboard + lightbox on photo
-    attachCardModal(homes);          // open big modal on card click (not photo/buttons)
-    attachScheduleButtons(homes);    // per-card "Schedule a Tour"
-    attachPageScheduleCta();         // bottom page "Schedule a Tour" button
+    attachSliders();               // photo arrows + keyboard + lightbox on photo
+    attachScheduleButtons(homes);  // per-card Schedule buttons
+    attachBottomScheduleCta();     // bottom page Schedule button (generic)
     wireForm();
 
     window.addEventListener('pageshow', clearStuckOverlays);
@@ -42,6 +41,7 @@
       const img = lb.querySelector('img, .lightbox-img');
       if (img) img.removeAttribute('src');
     }
+    // Nuke any generic modal classes just in case
     const modal = document.getElementById('lh-modal');
     if (modal) modal.classList.remove('open', 'is-open', 'active');
     document.body.classList.remove('modal-open', 'no-scroll');
@@ -52,7 +52,7 @@
     const photos = (h.photos || []).slice(0, 6);
     const first = photos[0] || '';
     return `
-    <article class="lh-card" data-id="${h.id || ''}" tabindex="0" aria-label="View details for ${h.address || ''}">
+    <article class="lh-card" data-id="${h.id || ''}">
       <div class="lh-status">${h.status || ''}</div>
 
       <div class="lh-photo-wrap" data-index="0" data-count="${photos.length}">
@@ -87,10 +87,10 @@
     </article>`;
   }
 
-  /* ---------------- Slider (photo only) ---------------- */
+  /* ---------------- Slider (NO card modal at all) ---------------- */
   function attachSliders() {
     document.querySelectorAll('.lh-photo-wrap').forEach(wrap => {
-      // Read photo URLs from the <template class="lh-photos">
+      // Read photo URLs from the template
       let spans = [];
       const tpl = wrap.querySelector('template.lh-photos');
       if (tpl && tpl.content) spans = Array.from(tpl.content.querySelectorAll('span'));
@@ -100,7 +100,7 @@
       const img = wrap.querySelector('.lh-photo');
       const counter = wrap.querySelector('.lh-counter');
 
-      // Prevent clicks in slider area from bubbling to the card
+      // Don’t let slider clicks trigger anything else
       wrap.addEventListener('click', (e) => {
         if (e.target.closest('.lh-arrow') || e.target.classList.contains('lh-photo')) e.stopPropagation();
       });
@@ -114,7 +114,7 @@
       const update = () => {
         if (!img) return;
         img.src = photos[i];
-        img.classList.add('glight'); // ensure lightbox
+        img.classList.add('glight'); // keep lightbox
         img.alt = `Photo ${i + 1}`;
         if (counter) counter.textContent = `${i + 1}/${photos.length}`;
       };
@@ -135,46 +135,7 @@
     });
   }
 
-  /* ---------------- Card modal (restored, but guarded) ---------------- */
-  function attachCardModal(homes) {
-    const modal = document.getElementById('lh-modal');
-    if (!modal) return; // if the big modal markup isn't on this page, skip
-
-    const byId = Object.fromEntries(homes.map(h => [h.id, h]));
-    document.querySelectorAll('.lh-card').forEach(card => {
-      // Never allow controls to trigger modal
-      card.querySelectorAll('a, button, .lh-arrow, .lh-photo').forEach(el => {
-        el.addEventListener('click', e => e.stopPropagation());
-      });
-
-      card.addEventListener('click', () => {
-        const id = card.getAttribute('data-id');
-        openModal(byId[id]);
-      });
-
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          const id = card.getAttribute('data-id');
-          openModal(byId[id]);
-        }
-      });
-    });
-
-    function openModal(home) {
-      // You can populate modal content here from `home` if your template supports it.
-      modal.classList.add('open');
-      document.body.classList.add('modal-open');
-
-      const close = modal.querySelector('.build-close,.lh-modal-close,[data-close]');
-      if (close) close.addEventListener('click', () => {
-        modal.classList.remove('open');
-        document.body.classList.remove('modal-open');
-      }, { once: true });
-    }
-  }
-
-  /* ---------------- Per-card "Schedule a Tour" ---------------- */
+  /* ---------------- Per-card “Schedule a Tour” ---------------- */
   function attachScheduleButtons(homes) {
     const byId = Object.fromEntries(homes.map(h => [h.id, h]));
 
@@ -192,18 +153,26 @@
     });
   }
 
-  /* ---------------- Bottom-page Schedule CTA ---------------- */
-  function attachPageScheduleCta() {
-    // Support a few common selectors; add more if your markup differs
-    const cta = document.getElementById('schedule-cta')
-            || document.querySelector('.schedule-cta')
-            || document.querySelector('[data-schedule], a[href="#schedule"]');
-    if (!cta) return;
+  /* ---------------- Bottom-page Schedule CTA (fixed) ---------------- */
+  function attachBottomScheduleCta() {
+    // 1) Try specific selectors if you add one later
+    let ctas = Array.from(document.querySelectorAll('#schedule-cta, .schedule-cta, [data-schedule], a[href="#schedule"]'));
 
-    cta.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      openSchedulePanel(null); // no specific listing
+    // 2) Fallback: any visible button/link with text "Schedule a Tour" that is NOT inside a card
+    if (ctas.length === 0) {
+      ctas = Array.from(document.querySelectorAll('button, a')).filter(el => {
+        if (el.closest('.lh-card')) return false;                   // not a card button
+        const t = (el.textContent || el.innerText || '').trim().toLowerCase();
+        return t === 'schedule a tour';
+      });
+    }
+
+    ctas.forEach(cta => {
+      cta.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openSchedulePanel(null); // generic CTA (no listing prefill)
+      });
     });
   }
 
@@ -231,7 +200,7 @@
       if (home) {
         ref.value = `${home.id} — ${home.address}, ${home.city || ''} ${home.state || ''}`.trim();
       } else if (!ref.value) {
-        ref.value = ''; // leave blank if generic CTA
+        ref.value = '';
       }
     }
 
