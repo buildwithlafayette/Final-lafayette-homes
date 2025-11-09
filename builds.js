@@ -1,15 +1,16 @@
 /* ==========================
    Lafayette Homes – builds.js
-   EXACT layout: large photo left, details panel right, single lightbox
+   Layout: big image left, details right, single lightbox
    Status colors: Available=green, Under Contract=yellow, Sold=red
-   Mobile: swipe left/right in lightbox, compact mobile panel
+   Mobile: swipe left/right, backdrop tap to close, fixed close button
+   CTA: bottom Schedule button always navigates to schedule.html
    ========================== */
 
 (function () {
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
-    injectCSS(); // ensures the modal + badges look right (includes mobile tweaks)
+    injectCSS(); // modal styles + mobile tweaks
 
     // Load listings
     const res = await fetch('availableHomes.json', { cache: 'no-store' });
@@ -44,6 +45,22 @@
         const home = idMap[id];
         if (!home) return;
         openModal(home, 0);
+      });
+    });
+
+    // Keep the bottom-page CTA reliable
+    wireScheduleCTAs();
+  }
+
+  function wireScheduleCTAs() {
+    // anything that looks like the bottom CTA will just go to schedule.html
+    document.querySelectorAll(
+      '#schedule-toggle, .schedule-cta, .cta-schedule, a[href="#schedule"]'
+    ).forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.location.href = 'schedule.html';
       });
     });
   }
@@ -109,7 +126,11 @@
     const root = document.createElement('div');
     root.id = 'lh-lightbox';
     root.innerHTML = `
-      <div class="lb-overlay"></div>
+      <div class="lb-overlay" data-close="1"></div>
+
+      <!-- fixed close button (viewport top-right) -->
+      <button class="lb-close-fixed" aria-label="Close" data-close="1">×</button>
+
       <div class="lb-shell" role="dialog" aria-modal="true" aria-label="${home.address || 'Listing'}">
         <!-- LEFT: image stage -->
         <div class="lb-stage">
@@ -126,7 +147,6 @@
 
         <!-- RIGHT: details panel -->
         <aside class="lb-panel">
-          <button class="lb-close" aria-label="Close">×</button>
           <h2 class="lb-title">${home.address || ''}</h2>
           <div class="lb-sub">${[home.city, home.state].filter(Boolean).join(', ')} ${home.zipcode || ''}</div>
           <div class="lb-meta">
@@ -163,8 +183,10 @@
     left?.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); show(index - 1); });
     right?.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); show(index + 1); });
 
-    root.querySelector('.lb-close')?.addEventListener('click', closeModal);
-    root.querySelector('.lb-overlay')?.addEventListener('click', closeModal);
+    // close on overlay or fixed X tap
+    root.querySelectorAll('[data-close="1"]').forEach(el =>
+      el.addEventListener('click', closeModal)
+    );
 
     // keyboard
     const keyHandler = (e) => {
@@ -178,12 +200,9 @@
     };
     window.addEventListener('keydown', keyHandler);
 
-    // --- TOUCH / SWIPE on mobile ---
+    // --- TOUCH / SWIPE on mobile (and pointer fallback) ---
     if (stage && count > 1) {
-      let startX = 0;
-      let lastX = 0;
-      let active = false;
-      let startTime = 0;
+      let startX = 0, lastX = 0, active = false, startTime = 0;
 
       const getX = (ev) =>
         ev.touches && ev.touches.length ? ev.touches[0].clientX : ev.clientX;
@@ -199,11 +218,10 @@
       };
       const onEnd = () => {
         if (!active) return;
+        active = false;
         const dx = lastX - startX;
         const dt = Date.now() - startTime;
-        active = false;
 
-        // Fast swipe or long swipe threshold
         const fast = Math.abs(dx) > 25 && dt < 250;
         const long = Math.abs(dx) > 60;
         if (fast || long) {
@@ -215,7 +233,7 @@
       stage.addEventListener('touchstart', onStart, { passive: true });
       stage.addEventListener('touchmove', onMove,  { passive: true });
       stage.addEventListener('touchend',  onEnd,   { passive: true });
-      // Pointer fallback (for some devices/browsers)
+
       stage.addEventListener('pointerdown', onStart);
       stage.addEventListener('pointermove', onMove);
       stage.addEventListener('pointerup',   onEnd);
@@ -249,21 +267,30 @@
       .lh-card-meta { color:#cfcfcf; font-size:14px; margin-bottom:12px; }
       .lh-card-actions { display:flex; gap:10px; flex-wrap:wrap; }
 
-      /* Status badge (top-left on card) */
+      /* Status badge */
       .lh-status { position:absolute; top:10px; left:10px; z-index:1; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:800; border:1px solid transparent; }
-      .lh-status.available { background:rgba(20,175,90,.18); border-color:rgba(20,175,90,.25); color:#9cf0bd; }   /* green */
-      .lh-status.under-contract { background:rgba(255,213,0,.18); border-color:rgba(255,213,0,.35); color:#ffe37a; } /* yellow */
-      .lh-status.sold { background:rgba(255,60,60,.18); border-color:rgba(255,60,60,.35); color:#ff9a9a; }          /* red  */
+      .lh-status.available { background:rgba(20,175,90,.18); border-color:rgba(20,175,90,.25); color:#9cf0bd; }
+      .lh-status.under-contract { background:rgba(255,213,0,.18); border-color:rgba(255,213,0,.35); color:#ffe37a; }
+      .lh-status.sold { background:rgba(255,60,60,.18); border-color:rgba(255,60,60,.35); color:#ff9a9a; }
 
       /* Lightbox root */
       .lb-noscroll { overflow:hidden; }
       #lh-lightbox { position:fixed; inset:0; z-index:9999; }
       #lh-lightbox .lb-overlay { position:absolute; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(2px); }
+
+      /* Fixed close button (viewport) */
+      .lb-close-fixed {
+        position:fixed; top:14px; right:14px; z-index:10000;
+        width:40px; height:40px; border-radius:999px;
+        border:1px solid rgba(255,255,255,.22);
+        background:rgba(0,0,0,.60); color:#fff; font-size:22px; line-height:36px; text-align:center;
+      }
+
       #lh-lightbox .lb-shell { position:absolute; inset:40px; display:flex; gap:24px; }
 
       /* Left: image */
       .lb-stage { flex: 2 1 66%; min-width: 0; display:flex; align-items:center; justify-content:center; }
-      .lb-stage-inner { position:relative; width:100%; max-height:calc(100vh - 160px); border-radius:20px; overflow:hidden; background:#0b0b0b; }
+      .lb-stage-inner { position:relative; width:100%; max-height:calc(100vh - 160px); border-radius:20px; overflow:hidden; background:#0b0b0b; touch-action: pan-y; }
       .lb-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
 
       /* Arrows + counter on image */
@@ -274,8 +301,7 @@
 
       /* Right: panel */
       .lb-panel { flex:1 1 34%; background:#1a1a1a; border:1px solid rgba(255,255,255,.09); border-radius:20px; padding:22px; color:#eaeaea; position:relative; }
-      .lb-close { position:absolute; top:12px; right:12px; width:38px; height:38px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:#111; color:#fff; font-size:22px; cursor:pointer; }
-      .lb-title { font-size:28px; font-weight:900; margin:24px 0 6px; color:#fff; }
+      .lb-title { font-size:28px; font-weight:900; margin:4px 0 6px; color:#fff; }
       .lb-sub { color:#bdbdbd; margin-bottom:12px; }
       .lb-meta { margin:12px 0 18px; }
       .lb-price { font-size:20px; font-weight:800; margin-bottom:6px; }
@@ -287,11 +313,12 @@
         #lh-lightbox .lb-shell { inset:20px; flex-direction:column; gap:16px; }
         .lb-stage-inner { max-height:calc(100vh - 240px); border-radius:16px; }
         .lb-panel { width:100%; padding:16px; border-radius:16px; }
-        .lb-title { margin-top:8px; font-size:24px; }
+        .lb-title { font-size:24px; }
         .btn { padding:9px 14px; }
       }
       @media (max-width: 480px) {
         #lh-lightbox .lb-shell { inset:12px; }
+        .lb-close-fixed { top:10px; right:10px; width:36px; height:36px; font-size:20px; line-height:34px; }
         .lb-arrow { width:38px; height:38px; font-size:22px; }
         .lb-counter { font-size:11px; padding:5px 9px; }
       }
