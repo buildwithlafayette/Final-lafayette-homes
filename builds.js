@@ -1,5 +1,8 @@
 (function () {
-  /* ---------------- Init ---------------- */
+  /* ===================== INIT ===================== */
+  document.addEventListener('DOMContentLoaded', init);
+  window.addEventListener('pageshow', clearStuckOverlays);
+
   async function init() {
     clearStuckOverlays();
 
@@ -17,15 +20,14 @@
     const grid = document.querySelector('.lh-grid');
     grid.innerHTML = homes.map(renderCard).join('');
 
-    attachSliders();               // photo arrows + keyboard + lightbox on photo
-    attachScheduleButtons(homes);  // per-card Schedule buttons
-    attachBottomScheduleCta();     // bottom page Schedule button (generic)
-    wireForm();
-
-    window.addEventListener('pageshow', clearStuckOverlays);
+    attachCardPhotoSliders();     // on-grid photo carousel
+    attachCardModal(homes);       // FULL-SCREEN modal (restored)
+    attachScheduleButtons(homes); // per-card schedule button
+    attachBottomScheduleCta();    // bottom page schedule CTA
+    wireForm();                   // no-op placeholder
   }
 
-  /* ---------------- Utils ---------------- */
+  /* ===================== UTIL ===================== */
   function money(n) {
     if (n === null || n === undefined || n === false) return 'TBD';
     const num = Number(n);
@@ -35,29 +37,22 @@
   function plural(n, w) { return (n == null) ? '' : `${n} ${w}${n === 1 ? '' : 's'}`; }
 
   function clearStuckOverlays() {
-    const lb = document.getElementById('lightbox');
-    if (lb) {
-      lb.classList.remove('open', 'is-open', 'active');
-      const img = lb.querySelector('img, .lightbox-img');
-      if (img) img.removeAttribute('src');
-    }
-    // Nuke any generic modal classes just in case
     const modal = document.getElementById('lh-modal');
-    if (modal) modal.classList.remove('open', 'is-open', 'active');
+    if (modal) modal.remove();
     document.body.classList.remove('modal-open', 'no-scroll');
   }
 
-  /* ---------------- Card renderer ---------------- */
+  /* ===================== CARD RENDER ===================== */
   function renderCard(h) {
     const photos = (h.photos || []).slice(0, 6);
     const first = photos[0] || '';
     return `
-    <article class="lh-card" data-id="${h.id || ''}">
+    <article class="lh-card" data-id="${h.id || ''}" tabindex="0" aria-label="Open details for ${h.address || ''}">
       <div class="lh-status">${h.status || ''}</div>
 
       <div class="lh-photo-wrap" data-index="0" data-count="${photos.length}">
         ${first
-          ? `<img class="lh-photo glight" src="${first}" alt="Photo 1 of ${h.address || ''}">`
+          ? `<img class="lh-photo" src="${first}" alt="Photo 1 of ${h.address || ''}">`
           : `<div class="lh-photo">No photos</div>`}
         ${photos.length > 1 ? `
           <button class="lh-arrow left" aria-label="Previous photo">‹</button>
@@ -80,17 +75,17 @@
 
         <div class="lh-links">
           ${h.mlsNumber ? `<span class="lh-chip">MLS #${h.mlsNumber}</span>` : ``}
-          ${h.zillowUrl ? `<a class="lh-link" href="${h.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
+          ${h.zillowUrl ? `<a class="btn ghost small lh-zillow" href="${h.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
           <button class="btn primary small schedule-card-btn" type="button">Schedule a Tour</button>
         </div>
       </div>
     </article>`;
   }
 
-  /* ---------------- Slider (NO card modal at all) ---------------- */
-  function attachSliders() {
+  /* ===================== GRID SLIDER ===================== */
+  function attachCardPhotoSliders() {
     document.querySelectorAll('.lh-photo-wrap').forEach(wrap => {
-      // Read photo URLs from the template
+      // Gather photos
       let spans = [];
       const tpl = wrap.querySelector('template.lh-photos');
       if (tpl && tpl.content) spans = Array.from(tpl.content.querySelectorAll('span'));
@@ -100,33 +95,27 @@
       const img = wrap.querySelector('.lh-photo');
       const counter = wrap.querySelector('.lh-counter');
 
-      // Don’t let slider clicks trigger anything else
+      // Stop bubbling when arrows or photo are clicked (modal will open from the card itself)
       wrap.addEventListener('click', (e) => {
         if (e.target.closest('.lh-arrow') || e.target.classList.contains('lh-photo')) e.stopPropagation();
       });
 
-      if (photos.length < 2) {
-        if (img) img.addEventListener('click', e => e.stopPropagation()); // allow lightbox only
-        return;
-      }
+      if (photos.length < 2) return;
 
       let i = 0;
       const update = () => {
         if (!img) return;
         img.src = photos[i];
-        img.classList.add('glight'); // keep lightbox
         img.alt = `Photo ${i + 1}`;
         if (counter) counter.textContent = `${i + 1}/${photos.length}`;
       };
       const prev = (e) => { if (e) e.stopPropagation(); i = (i - 1 + photos.length) % photos.length; update(); };
       const next = (e) => { if (e) e.stopPropagation(); i = (i + 1) % photos.length; update(); };
 
-      const leftBtn = wrap.querySelector('.left');
-      const rightBtn = wrap.querySelector('.right');
-      if (leftBtn) leftBtn.addEventListener('click', prev);
-      if (rightBtn) rightBtn.addEventListener('click', next);
+      wrap.querySelector('.left')?.addEventListener('click', prev);
+      wrap.querySelector('.right')?.addEventListener('click', next);
 
-      // Keyboard support
+      // Keyboard when wrap focused
       wrap.setAttribute('tabindex', '0');
       wrap.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
@@ -135,48 +124,158 @@
     });
   }
 
-  /* ---------------- Per-card “Schedule a Tour” ---------------- */
-  function attachScheduleButtons(homes) {
+  /* ===================== FULL SCREEN MODAL ===================== */
+  function attachCardModal(homes) {
     const byId = Object.fromEntries(homes.map(h => [h.id, h]));
 
+    document.querySelectorAll('.lh-card').forEach(card => {
+      // Guard: links/buttons inside card shouldn't open modal
+      card.querySelectorAll('a, button, .lh-arrow, .lh-photo').forEach(el => {
+        el.addEventListener('click', e => e.stopPropagation());
+      });
+
+      card.addEventListener('click', () => {
+        const id = card.getAttribute('data-id');
+        const home = byId[id];
+        if (home) openModal(home);
+      });
+
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          const id = card.getAttribute('data-id');
+          const home = byId[id];
+          if (home) openModal(home);
+        }
+      });
+    });
+  }
+
+  function openModal(home) {
+    closeModal(); // ensure clean
+
+    const photos = (home.photos || []).slice();
+    const count = photos.length || 1;
+    let index = 0;
+
+    const modal = document.createElement('div');
+    modal.id = 'lh-modal';
+    modal.className = 'lh-modal open'; // rely on your existing dark theme
+    modal.innerHTML = `
+      <div class="lh-modal-backdrop"></div>
+      <div class="lh-modal-panel" role="dialog" aria-modal="true" aria-label="${home.address || 'Listing'}">
+        <button class="lh-modal-close" aria-label="Close">×</button>
+
+        <div class="lh-modal-grid">
+          <div class="lh-modal-photo-wrap">
+            <img class="lh-modal-photo" src="${photos[0] || ''}" alt="Photo 1">
+            ${count > 1 ? `
+              <button class="lh-arrow left" aria-label="Previous photo">‹</button>
+              <button class="lh-arrow right" aria-label="Next photo">›</button>
+              <div class="lh-counter">${1}/${count}</div>
+            ` : ``}
+          </div>
+
+          <aside class="lh-modal-details">
+            <h2 class="lh-modal-title">${home.address || ''}</h2>
+            <div class="lh-modal-sub">${[home.city, home.state].filter(Boolean).join(', ')}${home.zipcode ? ' ' + home.zipcode : ''}</div>
+            <div class="lh-modal-price">${money(home.price)}</div>
+            <div class="lh-modal-meta">
+              ${home.beds != null ? `<span>${plural(home.beds, 'bd')}</span>` : ``}
+              ${home.baths != null ? `<span>• ${plural(home.baths, 'ba')}</span>` : ``}
+              ${home.sqft != null ? `<span>• ${Number(home.sqft).toLocaleString()} sqft</span>` : ``}
+            </div>
+            <div class="lh-modal-links">
+              ${home.zillowUrl ? `<a class="btn ghost" href="${home.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
+              <button class="btn primary schedule-modal-btn" type="button">Schedule a Tour</button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    document.body.classList.add('modal-open');
+
+    const img = modal.querySelector('.lh-modal-photo');
+    const counter = modal.querySelector('.lh-counter');
+
+    const update = () => {
+      if (!img) return;
+      img.src = photos[index] || '';
+      img.alt = `Photo ${index + 1}`;
+      if (counter) counter.textContent = `${index + 1}/${count}`;
+    };
+    const prev = () => { index = (index - 1 + count) % count; update(); };
+    const next = () => { index = (index + 1) % count; update(); };
+
+    modal.querySelector('.left')?.addEventListener('click', (e) => { e.stopPropagation(); prev(); });
+    modal.querySelector('.right')?.addEventListener('click', (e) => { e.stopPropagation(); next(); });
+
+    // Close handlers
+    modal.querySelector('.lh-modal-close')?.addEventListener('click', closeModal);
+    modal.querySelector('.lh-modal-backdrop')?.addEventListener('click', closeModal);
+    document.addEventListener('keydown', escHandler);
+
+    // Schedule button inside modal
+    modal.querySelector('.schedule-modal-btn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      openSchedulePanel(home);
+      closeModal();
+    });
+
+    function escHandler(e) {
+      if (e.key === 'Escape') {
+        closeModal();
+      } else if (e.key === 'ArrowLeft') {
+        prev();
+      } else if (e.key === 'ArrowRight') {
+        next();
+      }
+    }
+  }
+
+  function closeModal() {
+    const modal = document.getElementById('lh-modal');
+    if (modal) modal.remove();
+    document.body.classList.remove('modal-open');
+    document.removeEventListener('keydown', () => {}); // noop; listeners removed with node
+  }
+
+  /* ===================== SCHEDULE BUTTONS ===================== */
+  function attachScheduleButtons(homes) {
+    const byId = Object.fromEntries(homes.map(h => [h.id, h]));
     document.querySelectorAll('.schedule-card-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-
         const card = btn.closest('.lh-card');
         const id = card && card.getAttribute('data-id');
-        const h = id && byId[id];
-
-        openSchedulePanel(h);
+        const home = id && byId[id];
+        openSchedulePanel(home);
       });
     });
   }
 
-  /* ---------------- Bottom-page Schedule CTA (fixed) ---------------- */
   function attachBottomScheduleCta() {
-    // 1) Try specific selectors if you add one later
+    // Try explicit hooks first
     let ctas = Array.from(document.querySelectorAll('#schedule-cta, .schedule-cta, [data-schedule], a[href="#schedule"]'));
-
-    // 2) Fallback: any visible button/link with text "Schedule a Tour" that is NOT inside a card
     if (ctas.length === 0) {
+      // Fallback: any button/link that says "Schedule a Tour" and is NOT inside a card or modal
       ctas = Array.from(document.querySelectorAll('button, a')).filter(el => {
-        if (el.closest('.lh-card')) return false;                   // not a card button
+        if (el.closest('.lh-card') || el.closest('#lh-modal')) return false;
         const t = (el.textContent || el.innerText || '').trim().toLowerCase();
         return t === 'schedule a tour';
       });
     }
-
     ctas.forEach(cta => {
       cta.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        openSchedulePanel(null); // generic CTA (no listing prefill)
+        openSchedulePanel(null);
       });
     });
   }
 
-  /* ---------------- Open/scroll/prefill schedule section ---------------- */
   function openSchedulePanel(home) {
     const panel = document.getElementById('schedule-tour')
                || document.querySelector('[data-section="schedule"]')
@@ -184,7 +283,6 @@
     const toggle = document.getElementById('schedule-toggle')
                || document.querySelector('[data-toggle="schedule"]');
 
-    // Open collapsible if needed
     if (toggle && panel && (panel.classList.contains('is-collapsed') || panel.hidden)) {
       toggle.click();
     }
@@ -193,32 +291,25 @@
       panel.hidden = false;
     }
 
-    // Prefill reference if we have a listing
     const ref = document.getElementById('listing-ref')
               || document.querySelector('input[name="listing"], input[name="listingRef"]');
     if (ref) {
       if (home) {
-        ref.value = `${home.id} — ${home.address}, ${home.city || ''} ${home.state || ''}`.trim();
+        ref.value = `${home.id || ''} — ${home.address || ''}${home.city ? ', ' + home.city : ''} ${home.state || ''}`.trim();
       } else if (!ref.value) {
         ref.value = '';
       }
     }
 
-    // Focus first field & scroll into view
-    const firstInput = panel && panel.querySelector('input,textarea,select');
+    const firstInput = panel && panel.querySelector('input,textarea,select,button');
     if (firstInput) firstInput.focus({ preventScroll: true });
     if (panel) setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   }
 
-  /* ---------------- Realtor form ---------------- */
+  /* ===================== FORM (noop) ===================== */
   function wireForm() {
     const form = document.querySelector('.realtor-form');
     if (!form) return;
-    form.addEventListener('submit', async (e) => {
-      // Netlify / backend handles submission if configured.
-    });
+    form.addEventListener('submit', async () => {});
   }
-
-  /* ---------------- Start ---------------- */
-  document.addEventListener('DOMContentLoaded', init);
 })();
