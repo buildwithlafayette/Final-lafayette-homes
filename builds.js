@@ -17,8 +17,10 @@
     const grid = document.querySelector('.lh-grid');
     grid.innerHTML = homes.map(renderCard).join('');
 
-    attachSliders();          // photo arrows + keyboard + lightbox click
-    attachScheduleButtons(homes); // open/scroll/prefill schedule section
+    attachSliders();                 // arrows + keyboard + lightbox on photo
+    attachCardModal(homes);          // open big modal on card click (not photo/buttons)
+    attachScheduleButtons(homes);    // per-card "Schedule a Tour"
+    attachPageScheduleCta();         // bottom page "Schedule a Tour" button
     wireForm();
 
     window.addEventListener('pageshow', clearStuckOverlays);
@@ -41,7 +43,7 @@
       if (img) img.removeAttribute('src');
     }
     const modal = document.getElementById('lh-modal');
-    if (modal) modal.classList.remove('open', 'is-open', 'active'); // just in case it exists in markup
+    if (modal) modal.classList.remove('open', 'is-open', 'active');
     document.body.classList.remove('modal-open', 'no-scroll');
   }
 
@@ -50,12 +52,11 @@
     const photos = (h.photos || []).slice(0, 6);
     const first = photos[0] || '';
     return `
-    <article class="lh-card" data-id="${h.id || ''}">
+    <article class="lh-card" data-id="${h.id || ''}" tabindex="0" aria-label="View details for ${h.address || ''}">
       <div class="lh-status">${h.status || ''}</div>
 
       <div class="lh-photo-wrap" data-index="0" data-count="${photos.length}">
         ${first
-          // keep 'glight' so main.js lightbox opens on click
           ? `<img class="lh-photo glight" src="${first}" alt="Photo 1 of ${h.address || ''}">`
           : `<div class="lh-photo">No photos</div>`}
         ${photos.length > 1 ? `
@@ -86,7 +87,7 @@
     </article>`;
   }
 
-  /* ---------------- Slider (no card modal) ---------------- */
+  /* ---------------- Slider (photo only) ---------------- */
   function attachSliders() {
     document.querySelectorAll('.lh-photo-wrap').forEach(wrap => {
       // Read photo URLs from the <template class="lh-photos">
@@ -99,14 +100,13 @@
       const img = wrap.querySelector('.lh-photo');
       const counter = wrap.querySelector('.lh-counter');
 
-      // Prevent clicks in slider area from bubbling to any parent listeners
+      // Prevent clicks in slider area from bubbling to the card
       wrap.addEventListener('click', (e) => {
         if (e.target.closest('.lh-arrow') || e.target.classList.contains('lh-photo')) e.stopPropagation();
       });
 
-      // Solo image: still allow lightbox; nothing else to wire
       if (photos.length < 2) {
-        if (img) img.addEventListener('click', e => e.stopPropagation());
+        if (img) img.addEventListener('click', e => e.stopPropagation()); // allow lightbox only
         return;
       }
 
@@ -135,7 +135,46 @@
     });
   }
 
-  /* ---------------- Schedule button (open + prefill + scroll) ---------------- */
+  /* ---------------- Card modal (restored, but guarded) ---------------- */
+  function attachCardModal(homes) {
+    const modal = document.getElementById('lh-modal');
+    if (!modal) return; // if the big modal markup isn't on this page, skip
+
+    const byId = Object.fromEntries(homes.map(h => [h.id, h]));
+    document.querySelectorAll('.lh-card').forEach(card => {
+      // Never allow controls to trigger modal
+      card.querySelectorAll('a, button, .lh-arrow, .lh-photo').forEach(el => {
+        el.addEventListener('click', e => e.stopPropagation());
+      });
+
+      card.addEventListener('click', () => {
+        const id = card.getAttribute('data-id');
+        openModal(byId[id]);
+      });
+
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          const id = card.getAttribute('data-id');
+          openModal(byId[id]);
+        }
+      });
+    });
+
+    function openModal(home) {
+      // You can populate modal content here from `home` if your template supports it.
+      modal.classList.add('open');
+      document.body.classList.add('modal-open');
+
+      const close = modal.querySelector('.build-close,.lh-modal-close,[data-close]');
+      if (close) close.addEventListener('click', () => {
+        modal.classList.remove('open');
+        document.body.classList.remove('modal-open');
+      }, { once: true });
+    }
+  }
+
+  /* ---------------- Per-card "Schedule a Tour" ---------------- */
   function attachScheduleButtons(homes) {
     const byId = Object.fromEntries(homes.map(h => [h.id, h]));
 
@@ -148,37 +187,58 @@
         const id = card && card.getAttribute('data-id');
         const h = id && byId[id];
 
-        // Find the schedule panel/toggle by common IDs or fallbacks
-        const panel = document.getElementById('schedule-tour')
-                  || document.querySelector('[data-section="schedule"]')
-                  || document.querySelector('#schedule');
-        const toggle = document.getElementById('schedule-toggle')
-                  || document.querySelector('[data-toggle="schedule"]');
-
-        // Open collapsible if needed
-        if (toggle && panel && (panel.classList.contains('is-collapsed') || panel.hidden)) {
-          toggle.click();
-        }
-        if (panel) {
-          panel.classList.remove('is-collapsed', 'hidden');
-          panel.hidden = false;
-        }
-
-        // Prefill reference
-        const ref = document.getElementById('listing-ref')
-                  || document.querySelector('input[name="listing"], input[name="listingRef"]');
-        if (ref && h) {
-          ref.value = `${h.id} — ${h.address}, ${h.city || ''} ${h.state || ''}`.trim();
-        }
-
-        // Focus first input if present
-        const firstInput = panel && panel.querySelector('input,textarea,select');
-        if (firstInput) firstInput.focus({ preventScroll: true });
-
-        // Scroll into view
-        if (panel) setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+        openSchedulePanel(h);
       });
     });
+  }
+
+  /* ---------------- Bottom-page Schedule CTA ---------------- */
+  function attachPageScheduleCta() {
+    // Support a few common selectors; add more if your markup differs
+    const cta = document.getElementById('schedule-cta')
+            || document.querySelector('.schedule-cta')
+            || document.querySelector('[data-schedule], a[href="#schedule"]');
+    if (!cta) return;
+
+    cta.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openSchedulePanel(null); // no specific listing
+    });
+  }
+
+  /* ---------------- Open/scroll/prefill schedule section ---------------- */
+  function openSchedulePanel(home) {
+    const panel = document.getElementById('schedule-tour')
+               || document.querySelector('[data-section="schedule"]')
+               || document.querySelector('#schedule');
+    const toggle = document.getElementById('schedule-toggle')
+               || document.querySelector('[data-toggle="schedule"]');
+
+    // Open collapsible if needed
+    if (toggle && panel && (panel.classList.contains('is-collapsed') || panel.hidden)) {
+      toggle.click();
+    }
+    if (panel) {
+      panel.classList.remove('is-collapsed', 'hidden');
+      panel.hidden = false;
+    }
+
+    // Prefill reference if we have a listing
+    const ref = document.getElementById('listing-ref')
+              || document.querySelector('input[name="listing"], input[name="listingRef"]');
+    if (ref) {
+      if (home) {
+        ref.value = `${home.id} — ${home.address}, ${home.city || ''} ${home.state || ''}`.trim();
+      } else if (!ref.value) {
+        ref.value = ''; // leave blank if generic CTA
+      }
+    }
+
+    // Focus first field & scroll into view
+    const firstInput = panel && panel.querySelector('input,textarea,select');
+    if (firstInput) firstInput.focus({ preventScroll: true });
+    if (panel) setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   }
 
   /* ---------------- Realtor form ---------------- */
@@ -186,7 +246,7 @@
     const form = document.querySelector('.realtor-form');
     if (!form) return;
     form.addEventListener('submit', async (e) => {
-      // Netlify will handle if data-netlify attributes exist.
+      // Netlify / backend handles submission if configured.
     });
   }
 
