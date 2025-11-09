@@ -1,312 +1,238 @@
-/* Lafayette Homes – builds.js (single-file drop-in) */
+/* ==========================
+   Lafayette Homes – builds.js
+   EXACT layout: large photo left, details panel right, single lightbox
+   ========================== */
+
 (function () {
   document.addEventListener('DOMContentLoaded', init);
-  window.addEventListener('pageshow', clearStuckOverlays);
 
   async function init() {
-    clearStuckOverlays();
+    injectCSS(); // ensures the modal looks exactly right even if site CSS varies
 
+    // Load listings
     const res = await fetch('availableHomes.json', { cache: 'no-store' });
     const homes = await res.json();
 
-    // Order: Available → Under Contract → Sold; then by price desc
-    const order = { "Available": 0, "Under Contract": 1, "Sold": 2 };
+    // Sort: Available → Under Contract → Sold, then price desc
+    const order = { 'Available': 0, 'Under Contract': 1, 'Sold': 2 };
     homes.sort((a, b) => {
       const s = (order[a.status] ?? 9) - (order[b.status] ?? 9);
       if (s !== 0) return s;
       return (b.price ?? 0) - (a.price ?? 0);
     });
 
+    // Render cards
     const grid = document.querySelector('.lh-grid');
+    if (!grid) return;
     grid.innerHTML = homes.map(renderCard).join('');
 
-    // IMPORTANT: stop any image <a> / third-party lightbox from firing
-    disableImageAnchors();
-
-    attachCardPhotoSliders();
-    attachCardModal(homes);
-    attachScheduleButtons(homes);
-    attachBottomScheduleCta();
-    wireForm();
-  }
-
-  /* ---------------------- utilities ---------------------- */
-  function money(n) {
-    if (n === null || n === undefined || n === false) return 'TBD';
-    const num = Number(n);
-    if (Number.isNaN(num)) return 'TBD';
-    return num.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-  }
-  function plural(n, w) { return (
-    `${n} ${w}${Number(n) === 1 ? '' : 's'}`
-  );}
-
-  function clearStuckOverlays() {
-    document.body.classList.remove('modal-open', 'no-scroll');
-    closeModal();
-  }
-
-  /* -------------------- render cards --------------------- */
-  function renderCard(h) {
-    const photos = (h.photos || []).slice(0, 6);
-    const first = photos[0] || '';
-    return `
-    <article class="lh-card" data-id="${h.id || ''}" tabindex="0" aria-label="Open details for ${h.address || ''}">
-      ${h.status ? `<div class="lh-status">${h.status}</div>` : ``}
-
-      <div class="lh-photo-wrap" data-index="0" data-count="${photos.length}">
-        ${first
-          ? `<img class="lh-photo" src="${first}" alt="Photo 1 of ${h.address || ''}">`
-          : `<div class="lh-photo">No photos</div>`}
-        ${photos.length > 1 ? `
-          <button class="lh-arrow left" aria-label="Previous photo">‹</button>
-          <button class="lh-arrow right" aria-label="Next photo">›</button>
-          <div class="lh-counter">1/${photos.length}</div>
-        ` : ''}
-        <template class="lh-photos">${photos.map(p => `<span>${p}</span>`).join('')}</template>
-      </div>
-
-      <div class="lh-body">
-        <div class="lh-price">${money(h.price)}</div>
-        <div class="lh-title">${h.address || ''}</div>
-        <div class="lh-subtitle">${[h.city, h.state].filter(Boolean).join(', ')} ${h.zipcode || ''}</div>
-
-        <div class="lh-meta">
-          ${h.beds != null ? `<span>${plural(h.beds, 'Bed')}</span><span>•</span>` : ``}
-          ${h.baths != null ? `<span>${plural(h.baths, 'Bath')}</span><span>•</span>` : ``}
-          ${h.sqft != null ? `<span>${Number(h.sqft).toLocaleString()} sqft</span>` : ``}
-        </div>
-
-        <div class="lh-links">
-          ${h.mlsNumber ? `<span class="lh-chip">MLS #${h.mlsNumber}</span>` : ``}
-          ${h.zillowUrl ? `<a class="btn ghost small lh-zillow" href="${h.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
-          <button class="btn primary small schedule-card-btn" type="button">Schedule a Tour</button>
-        </div>
-      </div>
-    </article>`;
-  }
-
-  /* --------- block native image/lightbox behaviour -------- */
-  function disableImageAnchors() {
-    // 1) If images are wrapped in anchors to image files, unwrap them
-    document.querySelectorAll('.lh-card .lh-photo-wrap a[href]').forEach(a => {
-      const href = a.getAttribute('href') || '';
-      if (/\.(jpe?g|png|webp|gif|svg)(\?.*)?$/i.test(href)) {
-        const kid = a.firstElementChild || a.firstChild;
-        if (kid) a.replaceWith(kid); // keep the IMG, remove anchor
-      }
-    });
-
-    // 2) Strip common lightbox data attributes
-    document.querySelectorAll('.lh-card [data-lightbox],[data-fslightbox],[data-lity]').forEach(el => {
-      el.removeAttribute('data-lightbox');
-      el.removeAttribute('data-fslightbox');
-      el.removeAttribute('data-lity');
-    });
-
-    // 3) Capture-phase guard: prevent any leftover image anchors in cards
-    document.addEventListener('click', (e) => {
-      const a = e.target.closest('.lh-card a[href]');
-      if (!a) return;
-      const href = a.getAttribute('href') || '';
-      if (/\.(jpe?g|png|webp|gif|svg)(\?.*)?$/i.test(href)) {
-        e.preventDefault();
-        e.stopPropagation();
-        a.blur();
-      }
-    }, true);
-  }
-
-  /* ----------------- card photo slider ------------------- */
-  function attachCardPhotoSliders() {
-    document.querySelectorAll('.lh-card .lh-photo-wrap').forEach(wrap => {
-      const list = Array.from(wrap.querySelectorAll('.lh-photos > span')).map(s => s.textContent || '');
-      if (list.length <= 1) return;
-
-      const img = wrap.querySelector('.lh-photo');
-      const left = wrap.querySelector('.lh-arrow.left');
-      const right = wrap.querySelector('.lh-arrow.right');
-      const counter = wrap.querySelector('.lh-counter');
-
-      let index = 0;
-      function show(i) {
-        index = (i + list.length) % list.length;
-        if (img) img.src = list[index];
-        if (counter) counter.textContent = `${index + 1}/${list.length}`;
-        wrap.setAttribute('data-index', String(index));
-      }
-
-      left && left.addEventListener('click', (e) => {
-        e.stopPropagation(); e.preventDefault(); show(index - 1);
-      });
-      right && right.addEventListener('click', (e) => {
-        e.stopPropagation(); e.preventDefault(); show(index + 1);
-      });
-
-      // Click on image opens modal starting at current index
-      wrap.addEventListener('click', (e) => {
-        const card = wrap.closest('.lh-card');
-        if (!card) return;
+    // Wire cards → open modal at image 0
+    const idMap = Object.fromEntries(homes.map(h => [String(h.id), h]));
+    grid.querySelectorAll('.lh-card').forEach(card => {
+      card.addEventListener('click', e => {
         const id = card.getAttribute('data-id');
-        const home = findHomeById(id);
+        const home = idMap[id];
         if (!home) return;
-        openModal(home, index);
+        openModal(home, 0);
       });
-
-      function findHomeById(id) {
-        const el = document.querySelector(`.lh-card[data-id="${id}"]`);
-        if (!el) return null;
-        // not storing globally here; actual openModal uses provided home object from attachCardModal map
-        return null;
-      }
-    });
-  }
-
-  /* ------------------ open card modal -------------------- */
-  function attachCardModal(homes) {
-    const byId = Object.fromEntries(homes.map(h => [h.id, h]));
-
-    // Click anywhere on card opens modal at image 0
-    document.querySelectorAll('.lh-card').forEach(card => {
-      card.addEventListener('click', (e) => {
+      // View Photos button (stops click-through to card)
+      card.querySelector('.view-photos')?.addEventListener('click', e => {
+        e.stopPropagation();
         const id = card.getAttribute('data-id');
-        const home = byId[id];
-        if (home) openModal(home, 0);
-      });
-
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          const id = card.getAttribute('data-id');
-          const home = byId[id];
-          if (home) openModal(home);
-        }
+        const home = idMap[id];
+        if (!home) return;
+        openModal(home, 0);
       });
     });
   }
 
-  function openModal(home, startIndex) {
-    closeModal(); // clean slate
+  /* ---------- card markup (kept simple & reliable) ---------- */
+  function renderCard(h) {
+    const photos = (h.photos || []).slice();
+    const first = photos[0] || '';
 
-    const photos = (home.photos || []).slice();
-    const count = photos.length || 1;
-    let index = Math.max(0, Math.min(startIndex || 0, count - 1));
+    return `
+      <article class="lh-card" data-id="${h.id || ''}" tabindex="0" aria-label="${h.address || ''}">
+        ${h.status ? `<div class="lh-status">${h.status}</div>` : ``}
 
-    const modal = document.createElement('div');
-    modal.id = 'lh-modal';
-    modal.className = 'lh-modal open';
-    modal.innerHTML = `
-      <div class="lh-modal-backdrop"></div>
-      <div class="lh-modal-panel" role="dialog" aria-modal="true" aria-label="${home.address || 'Listing'}">
-        <button class="lh-modal-close" aria-label="Close">×</button>
+        <div class="lh-card-media">
+          <div class="lh-thumb aspect-16x9">
+            ${first ? `<img src="${first}" alt="${h.address || ''}" class="fit-cover">`
+                     : `<div class="fit-cover"></div>`}
+          </div>
+        </div>
 
-        <div class="lh-modal-grid">
-          <div class="lh-modal-photo-wrap">
-            <img class="lh-modal-photo" src="${photos[0] || ''}" alt="Photo 1">
-            ${count > 1 ? `
-              <button class="lh-arrow left" aria-label="Previous photo">‹</button>
-              <button class="lh-arrow right" aria-label="Next photo">›</button>
-              <div class="lh-counter">${1}/${count}</div>
-            ` : ``}
+        <div class="lh-card-body">
+          <h3 class="lh-card-title">${h.address || ''}</h3>
+          <div class="lh-card-sub">${[h.city, h.state].filter(Boolean).join(', ')} ${h.zipcode || ''}</div>
+          <div class="lh-card-meta">
+            <strong>${money(h.price)}</strong>
+            ${h.beds != null ? ` • ${h.beds} bd` : ``}
+            ${h.baths != null ? ` • ${h.baths} ba` : ``}
+            ${h.sqft  != null ? ` • ${Number(h.sqft).toLocaleString()} sqft` : ``}
           </div>
 
-          <aside class="lh-modal-details">
-            <h2 class="lh-modal-title">${home.address || ''}</h2>
-            <div class="lh-modal-subtitle">${[home.city, home.state].filter(Boolean).join(', ')} ${home.zipcode || ''}</div>
-            <div class="lh-modal-price">${money(home.price)}</div>
-
-            <ul class="lh-modal-meta">
-              ${home.beds != null ? `<li>${plural(home.beds, 'Bed')}</li>` : ``}
-              ${home.baths != null ? `<li>${plural(home.baths, 'Bath')}</li>` : ``}
-              ${home.sqft != null ? `<li>${Number(home.sqft).toLocaleString()} sqft</li>` : ``}
-            </ul>
-
-            <div class="lh-modal-actions">
-              ${home.zillowUrl ? `<a class="btn ghost" href="${home.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
-              <a class="btn primary" href="schedule.html">Schedule a Tour</a>
-            </div>
-          </aside>
+          <div class="lh-card-actions">
+            ${h.zillowUrl ? `<a class="btn ghost" href="${h.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
+            <button class="btn primary view-photos" type="button">View Photos</button>
+          </div>
         </div>
+      </article>
+    `;
+  }
+
+  function money(n) {
+    if (n == null || n === false) return 'TBD';
+    const x = Number(n);
+    return Number.isNaN(x) ? 'TBD' :
+      x.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  }
+
+  /* ----------------------- modal ----------------------- */
+  function openModal(home, startIndex) {
+    closeModal(); // ensure only one
+
+    const photos = (home.photos || []).slice();
+    const count = Math.max(photos.length, 1);
+    let index = Math.min(Math.max(startIndex || 0, 0), count - 1);
+
+    const root = document.createElement('div');
+    root.id = 'lh-lightbox';
+    root.innerHTML = `
+      <div class="lb-overlay"></div>
+      <div class="lb-shell" role="dialog" aria-modal="true" aria-label="${home.address || 'Listing'}">
+        <!-- LEFT: image stage -->
+        <div class="lb-stage">
+          <div class="lb-stage-inner aspect-16x9">
+            ${count ? `<img class="lb-img fit-cover" src="${photos[index]}" alt="Photo ${index + 1}">`
+                    : `<div class="lb-img fit-cover"></div>`}
+            ${count > 1 ? `
+              <button class="lb-arrow lb-left" aria-label="Previous">‹</button>
+              <button class="lb-arrow lb-right" aria-label="Next">›</button>
+              <div class="lb-counter">${index + 1}/${count}</div>
+            ` : ``}
+          </div>
+        </div>
+
+        <!-- RIGHT: details panel -->
+        <aside class="lb-panel">
+          <button class="lb-close" aria-label="Close">×</button>
+          <h2 class="lb-title">${home.address || ''}</h2>
+          <div class="lb-sub">${[home.city, home.state].filter(Boolean).join(', ')} ${home.zipcode || ''}</div>
+          <div class="lb-meta">
+            <div class="lb-price">${money(home.price)}</div>
+            <div class="lb-specs">
+              ${home.beds != null ? `<span>${home.beds} bd</span>` : ``}
+              ${home.baths != null ? `<span>• ${home.baths} ba</span>` : ``}
+              ${home.sqft  != null ? `<span>• ${Number(home.sqft).toLocaleString()} sqft</span>` : ``}
+            </div>
+          </div>
+          <div class="lb-actions">
+            ${home.zillowUrl ? `<a class="btn ghost" href="${home.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
+            <a class="btn primary" href="schedule.html">Schedule a Tour</a>
+          </div>
+        </aside>
       </div>
     `;
 
-    document.body.appendChild(modal);
-    document.body.classList.add('modal-open', 'no-scroll');
+    document.body.appendChild(root);
+    document.documentElement.classList.add('lb-noscroll');
 
-    // Keyboard + buttons
-    modal.querySelector('.lh-modal-close')?.addEventListener('click', closeModal);
-    modal.querySelector('.lh-modal-backdrop')?.addEventListener('click', closeModal);
-
-    const img = modal.querySelector('.lh-modal-photo');
-    const left = modal.querySelector('.lh-arrow.left');
-    const right = modal.querySelector('.lh-arrow.right');
-    const counter = modal.querySelector('.lh-counter');
+    const imgEl = root.querySelector('.lb-img');
+    const ctrEl = root.querySelector('.lb-counter');
+    const left  = root.querySelector('.lb-left');
+    const right = root.querySelector('.lb-right');
 
     function show(i) {
       index = (i + count) % count;
-      if (img) img.src = photos[index] || '';
-      if (counter) counter.textContent = `${index + 1}/${count}`;
+      if (imgEl) imgEl.src = photos[index] || '';
+      if (ctrEl) ctrEl.textContent = `${index + 1}/${count}`;
     }
 
-    left && left.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); show(index - 1); });
-    right && right.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); show(index + 1); });
+    left?.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); show(index - 1); });
+    right?.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); show(index + 1); });
 
-    window.addEventListener('keydown', keyHandler);
-    function keyHandler(e) {
-      if (!document.getElementById('lh-modal')) { window.removeEventListener('keydown', keyHandler); return; }
+    root.querySelector('.lb-close')?.addEventListener('click', closeModal);
+    root.querySelector('.lb-overlay')?.addEventListener('click', closeModal);
+
+    // keyboard
+    const keyHandler = (e) => {
+      if (!document.getElementById('lh-lightbox')) {
+        window.removeEventListener('keydown', keyHandler);
+        return;
+      }
       if (e.key === 'Escape') closeModal();
-      if (e.key === 'ArrowRight') show(index + 1);
-      if (e.key === 'ArrowLeft') show(index - 1);
-    }
-
-    // Start at correct index
-    if (startIndex) show(startIndex);
+      if (e.key === 'ArrowRight' && count > 1) show(index + 1);
+      if (e.key === 'ArrowLeft'  && count > 1) show(index - 1);
+    };
+    window.addEventListener('keydown', keyHandler);
   }
 
   function closeModal() {
-    const modal = document.getElementById('lh-modal');
-    if (modal) modal.remove();
-    document.body.classList.remove('modal-open');
+    document.getElementById('lh-lightbox')?.remove();
+    document.documentElement.classList.remove('lb-noscroll');
   }
 
-  /* ------------------ schedule buttons ------------------- */
-  function attachScheduleButtons(homes) {
-    const byId = Object.fromEntries(homes.map(h => [h.id, h]));
-    document.querySelectorAll('.schedule-card-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const card = btn.closest('.lh-card');
-        const id = card && card.getAttribute('data-id');
-        const home = id && byId[id];
-        if (home) {
-          // Could pre-fill form here if you add inputs
-          window.location.href = 'schedule.html';
-        }
-      });
-    });
-  }
+  /* ----------------------- CSS injector ----------------------- */
+  function injectCSS() {
+    if (document.getElementById('lb-style')) return;
+    const css = `
+      /* basic buttons */
+      .btn { display:inline-flex; align-items:center; justify-content:center; border-radius:12px; padding:10px 16px; font-weight:600; }
+      .btn.primary { background:#fff; color:#0c0c0c; }
+      .btn.ghost { border:1px solid rgba(255,255,255,.12); color:#cfcfcf; }
+      .btn:hover { filter:brightness(1.05); }
 
-  /* ---------- sticky bottom schedule CTA toggle ---------- */
-  function attachBottomScheduleCta() {
-    const toggle = document.getElementById('schedule-toggle');
-    const panel = document.getElementById('schedule-panel');
-    if (!toggle || !panel) return;
+      /* grid thumbs */
+      .aspect-16x9 { position:relative; width:100%; padding-top:56.25%; overflow:hidden; border-radius:20px; }
+      .fit-cover { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#111; }
 
-    toggle.addEventListener('click', () => {
-      const open = panel.getAttribute('data-open') === 'true';
-      panel.setAttribute('data-open', String(!open));
-      toggle.setAttribute('aria-expanded', String(!open));
-    });
-  }
+      .lh-card { background:#121212; border:1px solid rgba(255,255,255,.08); border-radius:22px; overflow:hidden; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+      .lh-card-body { padding:16px; }
+      .lh-card-title { font-size:20px; font-weight:800; color:#fff; margin:0 0 4px; }
+      .lh-card-sub { color:#bbb; font-size:14px; margin-bottom:6px; }
+      .lh-card-meta { color:#cfcfcf; font-size:14px; margin-bottom:12px; }
+      .lh-card-actions { display:flex; gap:10px; flex-wrap:wrap; }
 
-  const _homeCache = {};
-  function getById(id) { return _homeCache[id]; }
+      .lh-status { position:absolute; margin:10px; z-index:1; background:rgba(20,175,90,.18); color:#9cf0bd; border:1px solid rgba(20,175,90,.25); padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; }
 
-  /* ----------------------- form -------------------------- */
-  function wireForm() {
-    const form = document.querySelector('.realtor-form');
-    if (!form) return;
-    form.addEventListener('submit', async () => {});
+      /* Lightbox root */
+      .lb-noscroll { overflow:hidden; }
+      #lh-lightbox { position:fixed; inset:0; z-index:9999; }
+      #lh-lightbox .lb-overlay { position:absolute; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(2px); }
+      #lh-lightbox .lb-shell { position:absolute; inset:40px; display:flex; gap:24px; }
+
+      /* Left: image */
+      .lb-stage { flex: 2 1 66%; min-width: 0; display:flex; align-items:center; justify-content:center; }
+      .lb-stage-inner { width:100%; max-height:calc(100vh - 160px); border-radius:20px; overflow:hidden; background:#0b0b0b; }
+      .lb-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+
+      /* Arrows + counter on image */
+      .lb-arrow { position:absolute; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.35); color:#fff; font-size:26px; line-height:40px; text-align:center; cursor:pointer; }
+      .lb-left  { left:12px; }
+      .lb-right { right:12px; }
+      .lb-counter { position:absolute; right:12px; bottom:12px; background:rgba(0,0,0,.5); color:#fff; font-weight:700; padding:6px 10px; border-radius:999px; font-size:12px; border:1px solid rgba(255,255,255,.18); }
+
+      /* Right: panel */
+      .lb-panel { flex:1 1 34%; background:#1a1a1a; border:1px solid rgba(255,255,255,.09); border-radius:20px; padding:22px; color:#eaeaea; position:relative; }
+      .lb-close { position:absolute; top:12px; right:12px; width:38px; height:38px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:#111; color:#fff; font-size:22px; cursor:pointer; }
+      .lb-title { font-size:28px; font-weight:900; margin:24px 0 6px; color:#fff; }
+      .lb-sub { color:#bdbdbd; margin-bottom:12px; }
+      .lb-meta { margin:12px 0 18px; }
+      .lb-price { font-size:20px; font-weight:800; margin-bottom:6px; }
+      .lb-specs span { color:#d0d0d0; margin-right:8px; }
+      .lb-actions { display:flex; gap:10px; flex-wrap:wrap; }
+
+      @media (max-width: 1024px) {
+        #lh-lightbox .lb-shell { inset:20px; flex-direction:column; }
+        .lb-stage { flex-basis:auto; }
+        .lb-panel { width:100%; }
+        .lb-title { margin-top:8px; }
+      }
+    `.trim();
+    const style = document.createElement('style');
+    style.id = 'lb-style';
+    style.textContent = css;
+    document.head.appendChild(style);
   }
 })();
