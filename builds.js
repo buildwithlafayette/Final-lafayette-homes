@@ -1,312 +1,242 @@
-// builds.js
-// Lafayette Homes – Available Homes page
-// Fixes: duplicate image on open, inconsistent sizing, misaligned hero.
-// Uses a single lightbox modal with strict aspect ratio and object-cover.
+/* Lafayette Homes – builds.js (single-file drop-in) */
+(function () {
+  document.addEventListener('DOMContentLoaded', init);
+  window.addEventListener('pageshow', clearStuckOverlays);
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+  async function init() {
+    clearStuckOverlays();
 
-// -----------------------
-// DATA
-// -----------------------
-// If you already have a separate data file, you can swap HOMES with your import.
-// The important part for the gallery is each listing has an `images` array.
-//
-// Example structure shown here so this file is paste-ready.
-const HOMES = [
-  {
-    id: "dog-leg-ln",
-    title: "2610 Dog Leg Ln, Seneca SC",
-    city: "Seneca, SC",
-    price: "$797,900",
-    badges: ["for sale"],
-    details: { beds: 5, baths: 4, sqft: 3440 },
-    zillowUrl: "https://www.zillow.com/",
-    images: [
-      // Replace these with your real image URLs (keep order consistent).
-      "/images/dog-leg/1.jpg",
-      "/images/dog-leg/2.jpg",
-      "/images/dog-leg/3.jpg",
-      "/images/dog-leg/4.jpg",
-      "/images/dog-leg/5.jpg",
-      "/images/dog-leg/6.jpg",
-    ],
-  },
-  // You can add more listings here using the same shape
-];
+    const res = await fetch('availableHomes.json', { cache: 'no-store' });
+    const homes = await res.json();
 
-// -----------------------
-// LIGHTBOX MODAL
-// -----------------------
-function Lightbox({
-  isOpen,
-  images,
-  index,
-  onClose,
-  onPrev,
-  onNext,
-}: {
-  isOpen: boolean;
-  images: string[];
-  index: number;
-  onClose: () => void;
-  onPrev: () => void;
-  onNext: () => void;
-}) {
-  // Disable body scroll while the modal is open
-  useEffect(() => {
-    if (!isOpen) return;
-    const original = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = original;
-    };
-  }, [isOpen]);
+    // Order: Available → Under Contract → Sold; then by price desc
+    const order = { "Available": 0, "Under Contract": 1, "Sold": 2 };
+    homes.sort((a, b) => {
+      const s = (order[a.status] ?? 9) - (order[b.status] ?? 9);
+      if (s !== 0) return s;
+      return (b.price ?? 0) - (a.price ?? 0);
+    });
 
-  if (!isOpen) return null;
-  const src = images?.[index];
+    const grid = document.querySelector('.lh-grid');
+    grid.innerHTML = homes.map(renderCard).join('');
 
-  return (
-    <div
-      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
-      <button
-        aria-label="Close"
-        onClick={onClose}
-        className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
-      >
-        ✕
-      </button>
+    // IMPORTANT: stop any image <a> / third-party lightbox from firing
+    disableImageAnchors();
 
-      {/* Centered media stage – single image only */}
-      <div
-        className="mx-auto flex h-full max-w-6xl items-center px-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Prev */}
-        <button
-          aria-label="Previous image"
-          onClick={onPrev}
-          className="mr-3 hidden shrink-0 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 md:inline-flex"
-        >
-          ‹
-        </button>
+    attachCardPhotoSliders();
+    attachCardModal(homes);
+    attachScheduleButtons(homes);
+    attachBottomScheduleCta();
+    wireForm();
+  }
 
-        {/* Stage: locked aspect so every image renders same shape */}
-        <div className="w-full">
-          <div className="relative mx-auto aspect-[16/9] w-full overflow-hidden rounded-2xl shadow-2xl">
-            {src ? (
-              <img
-                key={src}
-                src={src}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-                draggable={false}
-              />
-            ) : null}
-          </div>
+  /* ---------------------- utilities ---------------------- */
+  function money(n) {
+    if (n === null || n === undefined || n === false) return 'TBD';
+    const num = Number(n);
+    if (Number.isNaN(num)) return 'TBD';
+    return num.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  }
+  function plural(n, w) { return (
+    `${n} ${w}${Number(n) === 1 ? '' : 's'}`
+  );}
 
-          {/* Pagination indicators */}
-          <div className="mt-3 flex items-center justify-center gap-2">
-            {images.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => {
-                  // jump directly
-                  const el = document.getElementById("__lightbox-jump");
-                  if (el) el.focus();
-                }}
-                className={`h-2 w-2 rounded-full ${
-                  i === index ? "bg-white" : "bg-white/40"
-                }`}
-                aria-label={`Go to image ${i + 1}`}
-              />
-            ))}
-            <span id="__lightbox-jump" className="sr-only">
-              Image {index + 1} of {images.length}
-            </span>
-          </div>
+  function clearStuckOverlays() {
+    document.body.classList.remove('modal-open', 'no-scroll');
+    closeModal();
+  }
 
-          {/* Mobile next/prev */}
-          <div className="mt-3 flex items-center justify-center gap-3 md:hidden">
-            <button
-              onClick={onPrev}
-              className="rounded-full bg-white/10 px-4 py-2 text-white hover:bg-white/20"
-            >
-              Prev
-            </button>
-            <button
-              onClick={onNext}
-              className="rounded-full bg-white/10 px-4 py-2 text-white hover:bg-white/20"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+  /* -------------------- render cards --------------------- */
+  function renderCard(h) {
+    const photos = (h.photos || []).slice(0, 6);
+    const first = photos[0] || '';
+    return `
+    <article class="lh-card" data-id="${h.id || ''}" tabindex="0" aria-label="Open details for ${h.address || ''}">
+      ${h.status ? `<div class="lh-status">${h.status}</div>` : ``}
 
-        {/* Next */}
-        <button
-          aria-label="Next image"
-          onClick={onNext}
-          className="ml-3 hidden shrink-0 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 md:inline-flex"
-        >
-          ›
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// -----------------------
-// LISTING CARD
-// -----------------------
-function ListingCard({
-  home,
-  onOpenGallery,
-}: {
-  home: (typeof HOMES)[number];
-  onOpenGallery: (images: string[], startIndex?: number) => void;
-}) {
-  const first = home.images?.[0];
-
-  return (
-    <div className="group overflow-hidden rounded-2xl border border-white/10 bg-neutral-900 shadow-lg transition hover:shadow-xl">
-      {/* Locked aspect for consistency across cards */}
-      <div className="relative aspect-[16/9] w-full overflow-hidden">
-        {first && (
-          <img
-            src={first}
-            alt={home.title}
-            className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-            loading="lazy"
-          />
-        )}
-        <button
-          onClick={() => onOpenGallery(home.images, 0)}
-          className="absolute inset-0"
-          aria-label={`Open gallery for ${home.title}`}
-          title="View photos"
-        />
+      <div class="lh-photo-wrap" data-index="0" data-count="${photos.length}">
+        ${first
+          ? `<img class="lh-photo" src="${first}" alt="Photo 1 of ${h.address || ''}">`
+          : `<div class="lh-photo">No photos</div>`}
+        ${photos.length > 1 ? `
+          <button class="lh-arrow left" aria-label="Previous photo">‹</button>
+          <button class="lh-arrow right" aria-label="Next photo">›</button>
+          <div class="lh-counter">1/${photos.length}</div>
+        ` : ''}
+        <template class="lh-photos">${photos.map(p => `<span>${p}</span>`).join('')}</template>
       </div>
 
-      <div className="space-y-2 p-4">
-        <div className="flex items-center gap-2">
-          {home.badges?.map((b) => (
-            <span
-              key={b}
-              className="rounded-full bg-emerald-600/15 px-2 py-0.5 text-xs text-emerald-400"
-            >
-              {b}
-            </span>
-          ))}
+      <div class="lh-body">
+        <div class="lh-price">${money(h.price)}</div>
+        <div class="lh-title">${h.address || ''}</div>
+        <div class="lh-subtitle">${[h.city, h.state].filter(Boolean).join(', ')} ${h.zipcode || ''}</div>
+
+        <div class="lh-meta">
+          ${h.beds != null ? `<span>${plural(h.beds, 'Bed')}</span><span>•</span>` : ``}
+          ${h.baths != null ? `<span>${plural(h.baths, 'Bath')}</span><span>•</span>` : ``}
+          ${h.sqft != null ? `<span>${Number(h.sqft).toLocaleString()} sqft</span>` : ``}
         </div>
 
-        <h3 className="text-lg font-semibold text-white">{home.title}</h3>
-        <p className="text-sm text-white/70">{home.city}</p>
-
-        <div className="flex flex-wrap items-center gap-3 text-sm text-white/80">
-          <span className="font-medium">{home.price}</span>
-          <span>• {home.details.beds} Beds</span>
-          <span>• {home.details.baths} Baths</span>
-          <span>• {home.details.sqft.toLocaleString()} sqft</span>
-        </div>
-
-        <div className="mt-3 flex gap-2">
-          {home.zillowUrl && (
-            <a
-              href={home.zillowUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-xl border border-white/10 px-3 py-2 text-sm text-white hover:bg-white/10"
-            >
-              View on Zillow
-            </a>
-          )}
-          <button
-            onClick={() => onOpenGallery(home.images, 0)}
-            className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-neutral-900 hover:bg-neutral-200"
-          >
-            View Photos
-          </button>
+        <div class="lh-links">
+          ${h.mlsNumber ? `<span class="lh-chip">MLS #${h.mlsNumber}</span>` : ``}
+          ${h.zillowUrl ? `<a class="btn ghost small lh-zillow" href="${h.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
+          <button class="btn primary small schedule-card-btn" type="button">Schedule a Tour</button>
         </div>
       </div>
-    </div>
-  );
-}
+    </article>`;
+  }
 
-// -----------------------
-// PAGE
-// -----------------------
-export default function Builds() {
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
+  /* --------- block native image/lightbox behaviour -------- */
+  function disableImageAnchors() {
+    // 1) If images are wrapped in anchors to image files, unwrap them
+    document.querySelectorAll('.lh-card .lh-photo-wrap a[href]').forEach(a => {
+      const href = a.getAttribute('href') || '';
+      if (/\.(jpe?g|png|webp|gif|svg)(\?.*)?$/i.test(href)) {
+        const kid = a.firstElementChild || a.firstChild;
+        if (kid) a.replaceWith(kid); // keep the IMG, remove anchor
+      }
+    });
 
-  const openGallery = useCallback((images: string[], startIndex = 0) => {
-    if (!images || !images.length) return;
-    setLightboxImages(images);
-    setLightboxIndex(startIndex);
-    setLightboxOpen(true);
-  }, []);
+    // 2) Strip common lightbox data attributes
+    document.querySelectorAll('.lh-card [data-lightbox],[data-fslightbox],[data-lity]').forEach(el => {
+      el.removeAttribute('data-lightbox');
+      el.removeAttribute('data-fslightbox');
+      el.removeAttribute('data-lity');
+    });
 
-  const closeGallery = useCallback(() => setLightboxOpen(false), []);
-  const nextImage = useCallback(() => {
-    setLightboxIndex((i) =>
-      lightboxImages.length ? (i + 1) % lightboxImages.length : 0
-    );
-  }, [lightboxImages.length]);
-  const prevImage = useCallback(() => {
-    setLightboxIndex((i) =>
-      lightboxImages.length ? (i - 1 + lightboxImages.length) % lightboxImages.length : 0
-    );
-  }, [lightboxImages.length]);
+    // 3) Capture-phase guard: prevent any leftover image anchors in cards
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('.lh-card a[href]');
+      if (!a) return;
+      const href = a.getAttribute('href') || '';
+      if (/\.(jpe?g|png|webp|gif|svg)(\?.*)?$/i.test(href)) {
+        e.preventDefault();
+        e.stopPropagation();
+        a.blur();
+      }
+    }, true);
+  }
 
-  // Keyboard controls for the lightbox
-  useEffect(() => {
-    if (!lightboxOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeGallery();
-      if (e.key === "ArrowRight") nextImage();
-      if (e.key === "ArrowLeft") prevImage();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [lightboxOpen, closeGallery, nextImage, prevImage]);
+  /* ----------------- card photo slider ------------------- */
+  function attachCardPhotoSliders() {
+    document.querySelectorAll('.lh-card .lh-photo-wrap').forEach(wrap => {
+      const list = Array.from(wrap.querySelectorAll('.lh-photos > span')).map(s => s.textContent || '');
+      if (list.length <= 1) return;
 
-  const homes = useMemo(() => HOMES, []);
+      const img = wrap.querySelector('.lh-photo');
+      const left = wrap.querySelector('.lh-arrow.left');
+      const right = wrap.querySelector('.lh-arrow.right');
+      const counter = wrap.querySelector('.lh-counter');
 
-  return (
-    <main className="mx-auto max-w-7xl px-4 py-10">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold text-white">Available Homes</h1>
-        <p className="mt-1 text-white/70">
-          Tap any card to view photos. All images open in a unified lightbox with a fixed 16:9
-          stage so every picture is the same size and shape.
-        </p>
-      </header>
+      let index = 0;
+      function show(i) {
+        index = (i + list.length) % list.length;
+        if (img) img.src = list[index];
+        if (counter) counter.textContent = `${index + 1}/${list.length}`;
+        wrap.setAttribute('data-index', String(index));
+      }
 
-      {/* Grid of listings */}
-      <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {homes.map((home) => (
-          <ListingCard
-            key={home.id}
-            home={home}
-            onOpenGallery={openGallery}
-          />
-        ))}
-      </section>
+      left && left.addEventListener('click', (e) => {
+        e.stopPropagation(); e.preventDefault(); show(index - 1);
+      });
+      right && right.addEventListener('click', (e) => {
+        e.stopPropagation(); e.preventDefault(); show(index + 1);
+      });
 
-      {/* Single lightbox instance for the entire page */}
-      <Lightbox
-        isOpen={lightboxOpen}
-        images={lightboxImages}
-        index={lightboxIndex}
-        onClose={closeGallery}
-        onPrev={prevImage}
-        onNext={nextImage}
-      />
-    </main>
-  );
-}
+      // Click on image opens modal starting at current index
+      wrap.addEventListener('click', (e) => {
+        const card = wrap.closest('.lh-card');
+        if (!card) return;
+        const id = card.getAttribute('data-id');
+        const home = findHomeById(id);
+        if (!home) return;
+        openModal(home, index);
+      });
+
+      function findHomeById(id) {
+        const el = document.querySelector(`.lh-card[data-id="${id}"]`);
+        if (!el) return null;
+        // not storing globally here; actual openModal uses provided home object from attachCardModal map
+        return null;
+      }
+    });
+  }
+
+  /* ------------------ open card modal -------------------- */
+  function attachCardModal(homes) {
+    const byId = Object.fromEntries(homes.map(h => [h.id, h]));
+
+    // Click anywhere on card opens modal at image 0
+    document.querySelectorAll('.lh-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        const id = card.getAttribute('data-id');
+        const home = byId[id];
+        if (home) openModal(home, 0);
+      });
+
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          const id = card.getAttribute('data-id');
+          const home = byId[id];
+          if (home) openModal(home);
+        }
+      });
+    });
+  }
+
+  function openModal(home, startIndex) {
+    closeModal(); // clean slate
+
+    const photos = (home.photos || []).slice();
+    const count = photos.length || 1;
+    let index = Math.max(0, Math.min(startIndex || 0, count - 1));
+
+    const modal = document.createElement('div');
+    modal.id = 'lh-modal';
+    modal.className = 'lh-modal open';
+    modal.innerHTML = `
+      <div class="lh-modal-backdrop"></div>
+      <div class="lh-modal-panel" role="dialog" aria-modal="true" aria-label="${home.address || 'Listing'}">
+        <button class="lh-modal-close" aria-label="Close">×</button>
+
+        <div class="lh-modal-grid">
+          <div class="lh-modal-photo-wrap">
+            <img class="lh-modal-photo" src="${photos[0] || ''}" alt="Photo 1">
+            ${count > 1 ? `
+              <button class="lh-arrow left" aria-label="Previous photo">‹</button>
+              <button class="lh-arrow right" aria-label="Next photo">›</button>
+              <div class="lh-counter">${1}/${count}</div>
+            ` : ``}
+          </div>
+
+          <aside class="lh-modal-details">
+            <h2 class="lh-modal-title">${home.address || ''}</h2>
+            <div class="lh-modal-subtitle">${[home.city, home.state].filter(Boolean).join(', ')} ${home.zipcode || ''}</div>
+            <div class="lh-modal-price">${money(home.price)}</div>
+
+            <ul class="lh-modal-meta">
+              ${home.beds != null ? `<li>${plural(home.beds, 'Bed')}</li>` : ``}
+              ${home.baths != null ? `<li>${plural(home.baths, 'Bath')}</li>` : ``}
+              ${home.sqft != null ? `<li>${Number(home.sqft).toLocaleString()} sqft</li>` : ``}
+            </ul>
+
+            <div class="lh-modal-actions">
+              ${home.zillowUrl ? `<a class="btn ghost" href="${home.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
+              <a class="btn primary" href="schedule.html">Schedule a Tour</a>
+            </div>
+          </aside>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    document.body.classList.add('modal-open', 'no-scroll');
+
+    // Keyboard + buttons
+    modal.querySelector('.lh-modal-close')?.addEventListener('click', closeModal);
+    modal.querySelector('.lh-modal-backdrop')?.addEventListener('click', closeModal);
+
+    const img = modal.querySelector('.lh-modal-photo');
+    const left = modal.querySelector('.lh-arrow.left');
+    const right = modal.querySelector('.lh-arr
