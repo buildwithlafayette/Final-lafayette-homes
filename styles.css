@@ -343,3 +343,36 @@ main.container + .schedule-toggle-wrap{margin-top:.5rem}
 /* Realtor card hard override */
 body .realtor-card{background:var(--card) !important; color:var(--fg) !important; border:1px solid var(--line) !important;}
 body .realtor-card *{color:inherit}
+/* ===== Mobile polish / safe overrides ===== */
+
+/* Make the viewport behave and kill horizontal scroll from rogue 100vw elements */
+html { box-sizing: border-box; -webkit-text-size-adjust: 100%; }
+*, *::before, *::after { box-sizing: inherit; }
+html, body { max-width: 100%; overflow-x: hidden; }
+
+/* Even gutters on small screens */
+:root { --gutter: 16px; }
+@media (max-width: 480px) { :root { --gutter: 14px; } }
+main, section, .container, .wrap { padding-left: var(--gutter); padding-right: var(--gutter); }
+
+/* Images never push layout wider than the screen */
+img, video { max-width: 100%; height: auto; }
+
+/* Header compaction (mobile) */
+header, .header, .site-header {
+  padding: 8px var(--gutter);
+}
+@media (max-width: 768px) {
+  header .logo img, .header .logo img, .site-header .logo img { height: 28px; width: 28px; }
+  nav, .nav, .primary-nav {
+    display: flex; gap: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    padding: 6px 0; scrollbar-width: none;
+  }
+  nav::-webkit-scrollbar, .nav::-webkit-scrollbar, .primary-nav::-webkit-scrollbar { display: none; }
+  nav a, .nav a, .primary-nav a { font-size: 14px; white-space: nowrap; padding: 6px 0; }
+  /* keep the “Our Realtor / Light–Dark” row tighter */
+  .btn, .chip, .theme-toggle { transform: translateZ(0); }
+}
+
+/* Prevent tiny off-by-1px overflow from rounded cards/shadows */
+.card, .panel, .hero, .gallery, .lh-card { overflow: hidden; border-radius: 20px; }

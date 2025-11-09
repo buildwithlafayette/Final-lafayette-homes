@@ -2,13 +2,14 @@
    Lafayette Homes – builds.js
    EXACT layout: large photo left, details panel right, single lightbox
    Status colors: Available=green, Under Contract=yellow, Sold=red
+   Mobile: swipe left/right in lightbox, compact mobile panel
    ========================== */
 
 (function () {
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
-    injectCSS(); // ensures the modal + badges look right
+    injectCSS(); // ensures the modal + badges look right (includes mobile tweaks)
 
     // Load listings
     const res = await fetch('availableHomes.json', { cache: 'no-store' });
@@ -151,6 +152,7 @@
     const ctrEl = root.querySelector('.lb-counter');
     const left  = root.querySelector('.lb-left');
     const right = root.querySelector('.lb-right');
+    const stage = root.querySelector('.lb-stage-inner');
 
     function show(i) {
       index = (i + count) % count;
@@ -175,6 +177,50 @@
       if (e.key === 'ArrowLeft'  && count > 1) show(index - 1);
     };
     window.addEventListener('keydown', keyHandler);
+
+    // --- TOUCH / SWIPE on mobile ---
+    if (stage && count > 1) {
+      let startX = 0;
+      let lastX = 0;
+      let active = false;
+      let startTime = 0;
+
+      const getX = (ev) =>
+        ev.touches && ev.touches.length ? ev.touches[0].clientX : ev.clientX;
+
+      const onStart = (ev) => {
+        active = true;
+        startX = lastX = getX(ev);
+        startTime = Date.now();
+      };
+      const onMove = (ev) => {
+        if (!active) return;
+        lastX = getX(ev);
+      };
+      const onEnd = () => {
+        if (!active) return;
+        const dx = lastX - startX;
+        const dt = Date.now() - startTime;
+        active = false;
+
+        // Fast swipe or long swipe threshold
+        const fast = Math.abs(dx) > 25 && dt < 250;
+        const long = Math.abs(dx) > 60;
+        if (fast || long) {
+          if (dx < 0) show(index + 1);
+          else show(index - 1);
+        }
+      };
+
+      stage.addEventListener('touchstart', onStart, { passive: true });
+      stage.addEventListener('touchmove', onMove,  { passive: true });
+      stage.addEventListener('touchend',  onEnd,   { passive: true });
+      // Pointer fallback (for some devices/browsers)
+      stage.addEventListener('pointerdown', onStart);
+      stage.addEventListener('pointermove', onMove);
+      stage.addEventListener('pointerup',   onEnd);
+      stage.addEventListener('pointercancel', onEnd);
+    }
   }
 
   function closeModal() {
@@ -236,11 +282,18 @@
       .lb-specs span { color:#d0d0d0; margin-right:8px; }
       .lb-actions { display:flex; gap:10px; flex-wrap:wrap; }
 
+      /* Mobile modal polish */
       @media (max-width: 1024px) {
-        #lh-lightbox .lb-shell { inset:20px; flex-direction:column; }
-        .lb-stage { flex-basis:auto; }
-        .lb-panel { width:100%; }
-        .lb-title { margin-top:8px; }
+        #lh-lightbox .lb-shell { inset:20px; flex-direction:column; gap:16px; }
+        .lb-stage-inner { max-height:calc(100vh - 240px); border-radius:16px; }
+        .lb-panel { width:100%; padding:16px; border-radius:16px; }
+        .lb-title { margin-top:8px; font-size:24px; }
+        .btn { padding:9px 14px; }
+      }
+      @media (max-width: 480px) {
+        #lh-lightbox .lb-shell { inset:12px; }
+        .lb-arrow { width:38px; height:38px; font-size:22px; }
+        .lb-counter { font-size:11px; padding:5px 9px; }
       }
     `.trim();
     const style = document.createElement('style');
