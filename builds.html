@@ -7,46 +7,109 @@
   <!-- Advertise support for light and dark themes -->
   <meta name="color-scheme" content="light dark" />
   <link rel="stylesheet" href="styles/available-homes.css" />
-<meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Lafayette Homes" />
-  <meta property="og:title" content="Lafayette Homes | Custom Home Builder in Upstate South Carolina" />
-  <meta property="og:description" content="Custom home builder in Upstate South Carolina. High-performance homes with honest budgets and clear timelines." />
-  <meta property="og:url" content="https://buildwithlafayette.com/builds.html" />
-  <meta property="og:image" content="/og-image.jpg" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Lafayette Homes | Custom Home Builder in Upstate South Carolina" />
-  <meta name="twitter:description" content="Custom home builder in Upstate South Carolina. High-performance homes with honest budgets and clear timelines." />
-  <meta name="twitter:image" content="/og-image.jpg" />
-<!-- Favicons / app icons -->
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HomeAndConstructionBusiness",
+  "name": "Lafayette Homes",
+  "url": "https://buildwithlafayette.com",
+  "image": "/logo-512.png",
+  "telephone": "+1-864-756-1313",
+  "priceRange": "$$$",
+  "areaServed": [
+    {
+      "@type": "City",
+      "name": "Greer"
+    },
+    {
+      "@type": "City",
+      "name": "Easley"
+    },
+    {
+      "@type": "City",
+      "name": "Seneca"
+    },
+    {
+      "@type": "City",
+      "name": "Clemson"
+    },
+    {
+      "@type": "City",
+      "name": "Anderson"
+    },
+    {
+      "@type": "City",
+      "name": "Six Mile"
+    },
+    {
+      "@type": "City",
+      "name": "Pendleton"
+    },
+    {
+      "@type": "City",
+      "name": "Greenville"
+    },
+    {
+      "@type": "City",
+      "name": "Belton"
+    },
+    {
+      "@type": "City",
+      "name": "Powdersville"
+    },
+    {
+      "@type": "City",
+      "name": "Simpsonville"
+    },
+    {
+      "@type": "City",
+      "name": "Central"
+    },
+    {
+      "@type": "City",
+      "name": "Pickens"
+    },
+    {
+      "@type": "City",
+      "name": "Piedmont"
+    },
+    {
+      "@type": "City",
+      "name": "Travelers Rest"
+    },
+    {
+      "@type": "AdministrativeArea",
+      "name": "South Carolina"
+    }
+  ],
+  "address": {
+    "@type": "PostalAddress",
+    "addressRegion": "SC",
+    "addressCountry": "US"
+  },
+  "openingHoursSpecification": [
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+      ],
+      "opens": "08:00",
+      "closes": "17:00"
+    }
+  ]
+}
+  </script>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#000000" />
   <meta name="theme-color" content="#ffffff" />
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "Lafayette Homes",
-  "alternateName": "Build With Lafayette",
-  "url": "https://buildwithlafayette.com",
-  "potentialAction": {
-    "@type": "SearchAction",
-    "target": "https://buildwithlafayette.com/search?q={search_term_string}",
-    "query-input": "required name=search_term_string"
-  }
-}
-  </script>
-  <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "Lafayette Homes",
-  "url": "https://buildwithlafayette.com",
-  "logo": "/logo-512.png"
-}
-  </script>
 </head>
 <body>
 <a class="skip-link" href="#content">Skip to content</a>
@@ -91,7 +154,7 @@
     <div class="footer-brand">
       <img src="images/logo-square.png" alt="Lafayette Homes logo" width="40" height="40" />
       <p>Lafayette Homes · Upstate South Carolina<br>
-        <a href="tel:+18645551234">+1 (864) 555-1234</a> ·
+        <a href="tel:+1-864-756-1313">+1 864-756-1313</a> ·
         <a href="mailto:info@buildwithlafayette.com">info@buildwithlafayette.com</a>
       </p>
     </div>
@@ -129,7 +192,7 @@
     <img class="host-photo" src="images/kara.jpg" alt="Kara Lafayette headshot" width="96" height="96" />
     <div class="host-meta">
       <strong>Kara Lafayette</strong>
-      <span>Realtor® • (864) 756-1313 • <a href="mailto:kara@buildwithlafayette.com">kara@buildwithlafayette.com</a></span>
+      <span>Realtor® • 864-756-1313 • <a href="mailto:kara@buildwithlafayette.com">kara@buildwithlafayette.com</a></span>
       <span class="subtle">Tell us which home and when you’d like to see it—Kara will confirm ASAP.</span>
     </div>
   </div>
@@ -138,7 +201,7 @@
         <input type="hidden" id="listing-ref" name="listing" value="">
         <div class="row two-col">
           <div><label for="name">Name</label><input id="name" name="name" placeholder="Your name" required /></div>
-          <div><label for="phone">Phone</label><input id="phone" name="phone" placeholder="(864) 555‑1234" /></div>
+          <div><label for="phone">Phone</label><input id="phone" name="phone" placeholder="864-756-1313" /></div>
           <div><label for="email">Email</label><input id="email" name="email" type="email" placeholder="you@example.com" required /></div>
           <div><label for="location">Build location</label><input id="location" name="location" placeholder="City / address / pin" /></div>
         </div>
