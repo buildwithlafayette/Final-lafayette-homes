@@ -26,7 +26,7 @@
   <meta name="theme-color" content="#ffffff" />
 
   <script type="application/ld+json">
-  {
+{
   "@context": "https://schema.org",
   "@type": "HomeAndConstructionBusiness",
   "name": "Lafayette Homes",
@@ -123,89 +123,77 @@
   </script>
 
   <style>
-    :root { --bg:#ffffff; --fg:#111; --muted:#555; --accent:#111; }
+    :root { --fg:#111; --muted:#555; --bg:#fff; }
     * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui, -apple system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color:var(--fg); background:var(--bg); line-height:1.6; }
-    header { padding:24px 20px; border-bottom:1px solid #eee; display:flex; align-items:center; justify-content:space-between; max-width:1100px; margin:0 auto; }
-    header a.logo { display:flex; align-items:center; text-decoration:none; color:inherit; font-weight:700; font-size:18px; gap:10px; }
+    body { margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--fg); background:var(--bg); line-height:1.6; }
+    header, .container, footer { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    header { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #eee; }
+    header a.logo { display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; font-weight:700; }
     header img { width:28px; height:28px; }
-    nav a { margin-left:16px; color:var(--fg); text-decoration:none; opacity:.8; }
+    nav a { margin-left:16px; color:inherit; text-decoration:none; opacity:.85; }
     nav a:hover { opacity:1; }
-    .hero { max-width:1100px; margin:0 auto; padding:48px 20px 12px; }
-    .hero h1 { font-size:40px; line-height:1.1; margin:0 0 12px; }
-    .hero p { color:var(--muted); max-width:800px; }
-    .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:20px; max-width:1100px; margin:24px auto; padding:0 20px 40px; }
-    .card { grid-column: span 6; border:1px solid #eee; border-radius:16px; padding:20px; }
+    .hero h1 { font-size: 40px; margin: 28px 0 12px; }
+    p.muted { color: var(--muted); }
+    .grid { display:grid; grid-template-columns: repeat(12,1fr); gap:20px; margin: 10px 0 30px; }
+    .card { grid-column: span 6; border:1px solid #eee; border-radius:16px; padding:20px; background:#fff; }
     .card h2 { margin:0 0 8px; font-size:22px; }
-    .facts { grid-column: span 12; border:1px dashed #e3e3e3; border-radius:16px; padding:20px; background:#fafafa; }
-    .cta { grid-column: span 12; display:flex; align-items:center; justify-content:space-between; gap:20px; border:1px solid #eee; padding:20px; border-radius:16px; }
-    .cta a.btn { padding:12px 16px; border-radius:10px; border:1px solid #111; color:#fff; background:#111; text-decoration:none; }
-    footer { border-top:1px solid #eee; margin-top:30px; }
-    .footer-inner { max-width:1100px; margin:0 auto; padding:28px 20px; color:#444; font-size:14px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-    .footer-inner a { color:#444; }
+    .cta { border:1px solid #eee; border-radius:16px; padding:20px; display:flex; justify-content:space-between; gap:20px; align-items:center; }
+    .btn { padding:12px 16px; border-radius:10px; border:1px solid #111; background:#111; color:#fff; text-decoration:none; }
+    footer { border-top:1px solid #eee; margin-top:20px; color:#444; font-size:14px; }
+    form label { display:block; margin: 10px 0 6px; }
+    input, textarea { width:100%; padding:10px; border:1px solid #ccc; border-radius:8px; }
+    button { padding:12px 16px; border-radius:10px; border:1px solid #111; background:#111; color:#fff; cursor:pointer; }
     @media (max-width: 800px) { .card { grid-column: span 12; } .hero h1 { font-size:32px; } }
   </style>
 </head>
 <body>
   <header>
-    <a href="/" class="logo">
-      <img src="/favicon-32.png" alt="Lafayette Homes logo" />
-      <span>Lafayette Homes</span>
-    </a>
+    <a href="/" class="logo"><img src="/favicon-32.png" alt="Lafayette Homes logo" /><span>Lafayette Homes</span></a>
     <nav>
       <a href="/">Home</a>
       <a href="/builds.html">Builds</a>
       <a href="/about.html">About</a>
+      <a href="/realtor.html">Our Realtor</a>
       <a href="/contact.html">Contact</a>
     </nav>
   </header>
-
-  <section class="hero">
-    <h1>About Lafayette Homes</h1>
-    <p>We design and build custom homes across the Upstate of South Carolina with a simple promise: clear communication, disciplined budgets, and craftsmanship that lasts.</p>
-  </section>
-
-  <section class="grid">
-    <article class="card">
-      <h2>Our Approach</h2>
-      <p><strong>Transparent budgets</strong> and <strong>schedule discipline</strong>. You’ll know where every dollar goes and what happens each week. We coordinate design, permits, selections, and trades so you don’t have to.</p>
-    </article>
-    <article class="card">
-      <h2>What We Build</h2>
-      <p>Single-family custom homes with practical, high‑value specs: efficient envelopes, durable finishes, and livable floor plans. Side‑garage layouts, bonus rooms, and home offices are our wheelhouse.</p>
-    </article>
-    <article class="card">
-      <h2>Process (6 Steps)</h2>
-      <ol>
-        <li>Intro call &amp; site review</li>
-        <li>Pre‑construction budget &amp; scope</li>
-        <li>Architecture &amp; selections</li>
-        <li>Permitting &amp; mobilization</li>
-        <li>Build &amp; walkthroughs</li>
-        <li>Closeout &amp; warranty</li>
-      </ol>
-    </article>
-    <article class="card">
-      <h2>Service Area</h2>
-      <p>Greer, Easley, Seneca, Clemson, Anderson, Six Mile, Pendleton, Greenville, South Carolina, Belton, Powdersville, Simpsonville, Central, Pickens, Piedmont, Travelers Rest.</p>
-    </article>
-
-    <aside class="facts">
-      <h2>License &amp; Insurance</h2>
-      <p>South Carolina Residential Builder/GC — <em>SC Residential Builder Lic. # RBB-214785</em>.<br/>General Liability and Certificates of Insurance available on request.</p>
-    </aside>
-
-    <div class="cta">
-      <div>
-        <h2>Ready to talk about your lot or plan?</h2>
-        <p>Email <a href="mailto:hello@buildwithlafayette.com">hello@buildwithlafayette.com</a> or call <a href="tel:+1-864-756-1313">864-756-1313</a>.</p>
+  <main class="container">
+    <section class="hero">
+      <h1>About Lafayette Homes</h1>
+      <p class="muted">We design and build custom homes with honest budgets and clear timelines.</p>
+    </section>
+    <section class="grid">
+      <div class="card">
+        <h2>What we build</h2>
+        <p>Single‑family custom homes with efficient envelopes and durable finishes.</p>
       </div>
-      <a class="btn" href="/contact.html">Request a Consult</a>
+      <div class="card">
+        <h2>Process (6 steps)</h2>
+        <ol>
+          <li>Intro call &amp; site review</li>
+          <li>Pre‑con budget &amp; scope</li>
+          <li>Architecture &amp; selections</li>
+          <li>Permitting &amp; mobilization</li>
+          <li>Build &amp; walkthroughs</li>
+          <li>Closeout &amp; warranty</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h2>Service Area</h2>
+        <p>Greer, Easley, Seneca, Clemson, Anderson, Six Mile, Pendleton, Greenville, South Carolina, Belton, Powdersville, Simpsonville, Central, Pickens, Piedmont, Travelers Rest.</p>
+      </div>
+      <div class="card">
+        <h2>License &amp; Insurance</h2>
+        <p>SC Residential Builder Lic. # RBB-214785 • COIs available on request.</p>
+      </div>
+    </section>
+    <div class="cta">
+      <div><strong>Ready to talk?</strong><br>Email <a href="mailto:hello@buildwithlafayette.com">hello@buildwithlafayette.com</a> or call <a href="tel:+1-864-756-1313">864-756-1313</a>.</div>
+      <a class="btn" href="/contact.html">Request a consult</a>
     </div>
-  </section>
-
+  </main>
   <footer>
-    <div class="footer-inner">
+    <div>
       <strong>Lafayette Homes</strong> • <a href="mailto:hello@buildwithlafayette.com">hello@buildwithlafayette.com</a> • Upstate SC • 864-756-1313
     </div>
   </footer>

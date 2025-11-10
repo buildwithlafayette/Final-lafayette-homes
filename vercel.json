@@ -1,13 +1,38 @@
 {
-  "cleanUrls": true,
-  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "https://www.buildwithlafayette.com/(.*)",
+      "destination": "https://buildwithlafayette.com/$1",
+      "permanent": true
+    },
+    {
+      "source": "http://www.buildwithlafayette.com/(.*)",
+      "destination": "https://buildwithlafayette.com/$1",
+      "permanent": true
+    },
+    {
+      "source": "http://buildwithlafayette.com/(.*)",
+      "destination": "https://buildwithlafayette.com/$1",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/sitemap.xml",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=()" }
+        {
+          "key": "Content-Type",
+          "value": "application/xml; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/robots.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        }
       ]
     }
   ]

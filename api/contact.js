@@ -1,101 +1,63 @@
-// /api/contact.js  (Node runtime)
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.status(405).send("Method Not Allowed");
-    return;
+// /api/contact.js  (Vercel Serverless Function)
+const { Resend } = require('resend');
+const querystring = require('querystring');
+
+async function parseBody(req) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const raw = Buffer.concat(chunks).toString('utf8');
+  const ct = (req.headers['content-type'] || '').split(';')[0].trim();
+
+  if (ct === 'application/json') {
+    try { return JSON.parse(raw); } catch { return {}; }
   }
-
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  if (!RESEND_API_KEY) {
-    res.status(500).send("Server not configured");
-    return;
+  if (ct === 'application/x-www-form-urlencoded') {
+    return querystring.parse(raw);
   }
-
-  // Parse x-www-form-urlencoded body
-  let body = "";
-  await new Promise((resolve) => {
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", resolve);
-  });
-  const p = new URLSearchParams(body);
-  const get = (k) => (p.get(k) || "").trim();
-
-  const data = {
-    name: get("name"),
-    email: get("email"),
-    phone: get("phone"),
-    location: get("location"),
-    notes: get("notes"),
-    gotcha: get("_gotcha"),
-  };
-
-  if (data.gotcha) {
-    res.status(200).send("OK");
-    return;
-  }
-  if (!data.name || !data.email) {
-    res.status(400).send("Missing fields");
-    return;
-  }
-
-  const subject = `New inquiry — ${data.name}`;
-  const to = "info@buildwithlafayette.com";
-  const from = "Lafayette Homes <info@buildwithlafayette.com>";
-  const html = `
-    <div style="font:16px system-ui, -apple-system, Segoe UI, Roboto, Arial; color:#111">
-      <h2>New website inquiry</h2>
-      <p><strong>Name:</strong> ${escapeHtml(data.name)}</p>
-      <p><strong>Email:</strong> ${escapeHtml(data.email)}</p>
-      <p><strong>Phone:</strong> ${escapeHtml(data.phone)}</p>
-      <p><strong>Build location:</strong> ${escapeHtml(data.location)}</p>
-      <p><strong>Notes:</strong><br>${escapeHtml(data.notes).replace(/\n/g, "<br>")}</p>
-    </div>
-  `;
-
-  const payload = {
-    from,
-    to,
-    subject,
-    html,
-    reply_to: data.email,
-    text: [
-      `New website inquiry`,
-      `Name: ${data.name}`,
-      `Email: ${data.email}`,
-      `Phone: ${data.phone}`,
-      `Build location: ${data.location}`,
-      ``,
-      `Notes:`,
-      data.notes || "",
-    ].join("\n"),
-  };
-
-  const r = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (r.ok) {
-    const url = new URL("/thank-you.html", `https://${req.headers.host}`);
-    if (data.name) url.searchParams.set("name", data.name);
-    res.writeHead(303, { Location: url.toString() });
-    res.end();
-    return;
-  }
-
-  const errText = await r.text();
-  res.status(500).send(`Email send failed: ${errText}`);
+  return {};
 }
 
-function escapeHtml(s) {
-  return String(s || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
+module.exports = async (req, res) => {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).send('Method Not Allowed');
+  }
+
+  const body = await parseBody(req);
+  const { name, email, phone, city, message, form_source, property, listing_id, listing_url, _redirect } = body || {};
+
+  if (!name || !email || !message) {
+    return res.status(400).send('Missing required fields: name, email, message');
+  }
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    const lines = [
+      `Source: ${form_source || 'Website Contact'}`,
+      `Name: ${name}`,
+      `Email: ${email}`,
+      `Phone: ${phone || ''}`,
+      `City: ${city || ''}`,
+    ];
+    if (property) lines.push(`Property: ${property}`);
+    if (listing_id) lines.push(`Listing ID: ${listing_id}`);
+    if (listing_url) lines.push(`Listing URL: ${listing_url}`);
+    lines.push('', 'Message:', (message || '').toString());
+
+    await resend.emails.send({
+      from: 'Lafayette Homes <inbox@buildwithlafayette.com>',
+      to: ['hello@buildwithlafayette.com'],
+      reply_to: email,
+      subject: `New inquiry (${form_source || 'Website'}) — ${name}`,
+      text: lines.join('\n')
+    });
+
+    const redirectUrl = _redirect || 'https://buildwithlafayette.com/thank-you.html';
+    res.setHeader('Location', redirectUrl);
+    return res.status(303).end();
+  } catch (err) {
+    console.error('Resend error:', err);
+    return res.status(500).send('Email send failed. Try again later.');
+  }
+};
