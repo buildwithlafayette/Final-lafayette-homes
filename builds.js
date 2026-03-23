@@ -1,311 +1,81 @@
-/* ==========================
-   Lafayette Homes – builds.js
-   Layout: big image left, details right, single lightbox
-   Status colors: Available=green, Under Contract=yellow, Sold=red
-   Mobile: swipe left/right, backdrop/dead-space tap to close, fixed close button
-   CTA: bottom Schedule button always navigates to schedule.html
-   Zillow button: brand blue
-   ========================== */
-
+/* builds.js v4 — Lafayette Homes
+   Google Sheets CSV sync + local JSON fallback
+   SETUP: Paste your published Google Sheet CSV URL into sheetUrl below.
+   Leave empty to use availableHomes.json instead. */
 (function () {
-  document.addEventListener('DOMContentLoaded', init);
+  'use strict';
+  const CONFIG = { sheetUrl: '', photoSep: '|' };
+  const STATUS_ORDER = { 'for sale':0, 'available':0, 'under contract':1, 'sold':2 };
 
-  async function init() {
-    injectCSS();
-
-    const res = await fetch('availableHomes.json', { cache: 'no-store' });
-    const homes = await res.json();
-
-    const order = { 'Available': 0, 'Under Contract': 1, 'Sold': 2 };
-    homes.sort((a, b) => {
-      const s = (order[a.status] ?? 9) - (order[b.status] ?? 9);
-      if (s !== 0) return s;
-      return (b.price ?? 0) - (a.price ?? 0);
-    });
-
-    const grid = document.querySelector('.lh-grid');
-    if (!grid) return;
-    grid.innerHTML = homes.map(renderCard).join('');
-
-    const idMap = Object.fromEntries(homes.map(h => [String(h.id), h]));
-    grid.querySelectorAll('.lh-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const id = card.getAttribute('data-id');
-        const home = idMap[id];
-        if (!home) return;
-        openModal(home, 0);
-      });
-      card.querySelector('.view-photos')?.addEventListener('click', e => {
-        e.stopPropagation();
-        const id = card.getAttribute('data-id');
-        const home = idMap[id];
-        if (!home) return;
-        openModal(home, 0);
-      });
-    });
-
-    wireScheduleCTAs();
-  }
-
-  function wireScheduleCTAs() {
-    document.querySelectorAll(
-      '#schedule-toggle, .schedule-cta, .cta-schedule, a[href="#schedule"]'
-    ).forEach(el => {
-      el.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        window.location.href = 'schedule.html';
-      });
-    });
-  }
-
-  function getStatusClass(status) {
-    const s = (status || '').toLowerCase();
-    if (s === 'sold') return 'sold';
-    if (s === 'under contract' || s === 'under-contract') return 'under-contract';
-    return 'available';
-  }
-
-  function renderCard(h) {
-    const photos = (h.photos || []).slice();
-    const first = photos[0] || '';
-    const statusClass = h.status ? getStatusClass(h.status) : '';
-
-    return `
-      <article class="lh-card" data-id="${h.id || ''}" tabindex="0" aria-label="${h.address || ''}">
-        ${h.status ? `<div class="lh-status ${statusClass}">${h.status}</div>` : ``}
-
-        <div class="lh-card-media">
-          <div class="lh-thumb aspect-16x9">
-            ${first ? `<img src="${first}" alt="${h.address || ''}" class="fit-cover">`
-                     : `<div class="fit-cover"></div>`}
-          </div>
-        </div>
-
-        <div class="lh-card-body">
-          <h3 class="lh-card-title">${h.address || ''}</h3>
-          <div class="lh-card-sub">${[h.city, h.state].filter(Boolean).join(', ')} ${h.zipcode || ''}</div>
-          <div class="lh-card-meta">
-            <strong>${money(h.price)}</strong>
-            ${h.beds != null ? ` • ${h.beds} bd` : ``}
-            ${h.baths != null ? ` • ${h.baths} ba` : ``}
-            ${h.sqft  != null ? ` • ${Number(h.sqft).toLocaleString()} sqft` : ``}
-          </div>
-
-          <div class="lh-card-actions">
-            ${h.zillowUrl ? `<a class="btn zillow" href="${h.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
-            <button class="btn primary view-photos" type="button">View Photos</button>
-          </div>
-        </div>
-      </article>
-    `;
-  }
-
-  function money(n) {
-    if (n == null || n === false) return 'TBD';
-    const x = Number(n);
-    return Number.isNaN(x) ? 'TBD' :
-      x.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-  }
-
-  /* ----------------------- modal ----------------------- */
-  function openModal(home, startIndex) {
-    closeModal();
-
-    const photos = (home.photos || []).slice();
-    const count = Math.max(photos.length, 1);
-    let index = Math.min(Math.max(startIndex || 0, 0), count - 1);
-
-    const root = document.createElement('div');
-    root.id = 'lh-lightbox';
-    root.innerHTML = `
-      <div class="lb-overlay" data-close="1"></div>
-
-      <!-- fixed close button (viewport top-right) -->
-      <button class="lb-close-fixed" aria-label="Close" data-close="1">×</button>
-
-      <div class="lb-shell" role="dialog" aria-modal="true" aria-label="${home.address || 'Listing'}">
-        <!-- LEFT: image stage -->
-        <div class="lb-stage">
-          <div class="lb-stage-inner aspect-16x9">
-            ${count ? `<img class="lb-img fit-cover" src="${photos[index]}" alt="Photo ${index + 1}">`
-                    : `<div class="lb-img fit-cover"></div>`}
-            ${count > 1 ? `
-              <button class="lb-arrow lb-left" aria-label="Previous">‹</button>
-              <button class="lb-arrow lb-right" aria-label="Next">›</button>
-              <div class="lb-counter">${index + 1}/${count}</div>
-            ` : ``}
-          </div>
-        </div>
-
-        <!-- RIGHT: details panel -->
-        <aside class="lb-panel">
-          <h2 class="lb-title">${home.address || ''}</h2>
-          <div class="lb-sub">${[home.city, home.state].filter(Boolean).join(', ')} ${home.zipcode || ''}</div>
-          <div class="lb-meta">
-            <div class="lb-price">${money(home.price)}</div>
-            <div class="lb-specs">
-              ${home.beds != null ? `<span>${home.beds} bd</span>` : ``}
-              ${home.baths != null ? `<span>• ${home.baths} ba</span>` : ``}
-              ${home.sqft  != null ? `<span>• ${Number(home.sqft).toLocaleString()} sqft</span>` : ``}
-            </div>
-          </div>
-          <div class="lb-actions">
-            ${home.zillowUrl ? `<a class="btn zillow" href="${home.zillowUrl}" target="_blank" rel="noreferrer">View on Zillow</a>` : ``}
-            <a class="btn primary" href="schedule.html">Schedule a Tour</a>
-          </div>
-        </aside>
-      </div>
-    `;
-
-    document.body.appendChild(root);
-    document.documentElement.classList.add('lb-noscroll');
-
-    const imgEl = root.querySelector('.lb-img');
-    const ctrEl = root.querySelector('.lb-counter');
-    const left  = root.querySelector('.lb-left');
-    const right = root.querySelector('.lb-right');
-    const stage = root.querySelector('.lb-stage-inner');
-    const shell = root.querySelector('.lb-shell');
-
-    function show(i) {
-      index = (i + count) % count;
-      if (imgEl) imgEl.src = photos[index] || '';
-      if (ctrEl) ctrEl.textContent = `${index + 1}/${count}`;
+  async function loadHomes() {
+    if (CONFIG.sheetUrl) {
+      try { return await fetchSheet(CONFIG.sheetUrl); }
+      catch (err) { console.warn('[Lafayette] Sheet failed, using JSON:', err); }
     }
-
-    left?.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); show(index - 1); });
-    right?.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); show(index + 1); });
-
-    // close on overlay or fixed X tap
-    root.querySelectorAll('[data-close="1"]').forEach(el =>
-      el.addEventListener('click', closeModal)
-    );
-
-    // NEW: click any "dead space" inside the shell—but NOT the image or details—closes
-    shell?.addEventListener('click', (e) => {
-      const t = e.target;
-      const clickedImage = t.closest && t.closest('.lb-stage-inner');
-      const clickedPanel = t.closest && t.closest('.lb-panel');
-      const clickedArrow = t.closest && t.closest('.lb-arrow');
-      if (!clickedImage && !clickedPanel && !clickedArrow) {
-        closeModal();
-      }
-    });
-
-    const keyHandler = (e) => {
-      if (!document.getElementById('lh-lightbox')) {
-        window.removeEventListener('keydown', keyHandler);
-        return;
-      }
-      if (e.key === 'Escape') closeModal();
-      if (e.key === 'ArrowRight' && count > 1) show(index + 1);
-      if (e.key === 'ArrowLeft'  && count > 1) show(index - 1);
-    };
-    window.addEventListener('keydown', keyHandler);
-
-    // TOUCH / SWIPE
-    if (stage && count > 1) {
-      let startX = 0, lastX = 0, active = false, startTime = 0;
-      const getX = (ev) => (ev.touches && ev.touches.length ? ev.touches[0].clientX : ev.clientX);
-      const onStart = (ev) => { active = true; startX = lastX = getX(ev); startTime = Date.now(); };
-      const onMove  = (ev) => { if (active) lastX = getX(ev); };
-      const onEnd   = () => {
-        if (!active) return;
-        active = false;
-        const dx = lastX - startX;
-        const dt = Date.now() - startTime;
-        const fast = Math.abs(dx) > 25 && dt < 250;
-        const long = Math.abs(dx) > 60;
-        if (fast || long) show(dx < 0 ? index + 1 : index - 1);
-      };
-      stage.addEventListener('touchstart', onStart, { passive: true });
-      stage.addEventListener('touchmove',  onMove,  { passive: true });
-      stage.addEventListener('touchend',   onEnd,   { passive: true });
-      stage.addEventListener('pointerdown', onStart);
-      stage.addEventListener('pointermove', onMove);
-      stage.addEventListener('pointerup',   onEnd);
-      stage.addEventListener('pointercancel', onEnd);
+    const res = await fetch('availableHomes.json', { cache:'no-store' });
+    if (!res.ok) throw new Error('JSON fetch failed: ' + res.status);
+    return res.json();
+  }
+  async function fetchSheet(url) {
+    const res = await fetch(url, { cache:'no-store' });
+    if (!res.ok) throw new Error('Sheet fetch ' + res.status);
+    return parseCSV(await res.text());
+  }
+  function parseCSV(text) {
+    const lines = text.split(/\r?\n/);
+    const headers = parseLine(lines[0]).map(h => h.trim().toLowerCase().replace(/\s+/g,''));
+    const homes = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const vals = parseLine(line);
+      const raw = {};
+      headers.forEach((h, idx) => { raw[h] = (vals[idx] || '').trim(); });
+      if (!raw.address) continue;
+      const pn = v => { const n=Number(String(v||'').replace(/[^0-9.]/g,'')); return (isNaN(n)||String(v||'')==='') ? null : n; };
+      homes.push({ id:raw.id||'', address:raw.address, city:raw.city||'', state:raw.state||'', zipcode:raw.zipcode||'', beds:pn(raw.beds), baths:pn(raw.baths), sqft:pn(raw.sqft), price:pn(raw.price), status:raw.status||'', zillowUrl:raw.zillowurl||raw.zillow_url||'', mlsNumber:raw.mlsnumber||raw.mls_number||'', photos:raw.photos ? raw.photos.split(CONFIG.photoSep).map(p=>p.trim()).filter(Boolean) : [] });
     }
+    return homes;
+  }
+  function parseLine(line) {
+    const result=[]; let cur='', inQ=false;
+    for (let i=0;i<line.length;i++) {
+      const c=line[i];
+      if (c==='"') { if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ; }
+      else if (c===','&&!inQ) { result.push(cur); cur=''; }
+      else cur+=c;
+    }
+    result.push(cur); return result;
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+  function money(n){if(n===null||n===undefined||isNaN(Number(n)))return 'Price TBD';return Number(n).toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});}
+  function statusInfo(raw){ const s=(raw||'').toLowerCase().trim(); if(s==='for sale'||s==='available') return {cls:'status-available',label:'For Sale'}; if(s.includes('contract')) return {cls:'status-contract',label:'Under Contract'}; if(s==='sold') return {cls:'status-sold',label:'Sold'}; return {cls:'status-other',label:raw||''}; }
+  function sortHomes(homes){ return [...homes].sort((a,b)=>{ const sa=STATUS_ORDER[(a.status||'').toLowerCase()]??9; const sb=STATUS_ORDER[(b.status||'').toLowerCase()]??9; if(sa!==sb) return sa-sb; return (b.price??-Infinity)-(a.price??-Infinity); }); }
+
+  function renderCard(h){
+    const photos=(h.photos||[]).slice(0,8), si=statusInfo(h.status);
+    return `<article class="lh-card" data-id="${esc(h.id)}" tabindex="0" role="button" aria-label="View details for ${esc(h.address)}"><div class="lh-photo-wrap">${photos[0]?`<img class="lh-photo" src="${esc(photos[0])}" alt="Front of ${esc(h.address)}" loading="lazy" />`:`<div class="lh-photo lh-photo--empty" aria-hidden="true"><span>No photo</span></div>`}${photos.length>1?`<button class="lh-arrow lh-arrow--left" aria-label="Previous photo" type="button">&#8249;</button><button class="lh-arrow lh-arrow--right" aria-label="Next photo" type="button">&#8250;</button><div class="lh-dot-track" aria-hidden="true">${photos.map((_,i)=>`<span class="lh-dot${i===0?' active':''}"></span>`).join('')}</div>`:''}<template class="lh-photo-list">${photos.map(p=>`<span>${esc(p)}</span>`).join('')}</template><div class="lh-status-badge ${si.cls}">${esc(si.label)}</div></div><div class="lh-card-body"><div class="lh-price">${money(h.price)}</div><div class="lh-address">${esc(h.address)}</div><div class="lh-city">${esc(h.city)}${h.state?`, ${esc(h.state)}":''}${h.zipcode?` ${esc(h.zipcode)}":''}</div>${(h.beds!=null||h.baths!=null||h.sqft!=null)?`<ul class="lh-specs" aria-label="Property specs">${h.beds!=null?`<li>${h.beds} bed${h.beds===1?'':'s'}</li>`:''}${h.baths!=null?`<li>${h.baths} bath${h.baths===1?'':'s'}</li>`:''}${h.sqft!=null?`<li>${Number(h.sqft).toLocaleString()} sqft</li>`:''}</ul>\":''}<div class="lh-card-footer">${h.mlsNumber?`<span class="lh-chip">MLS #${esc(h.mlsNumber)}</span>\":''}<div class="lh-card-links">${h.zillowUrl?`<a class="lh-zillow-link" href="${esc(h.zillowUrl)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" aria-label="View on Zillow">Zillow ↗</a>\":''}<button class="lh-tour-btn btn primary small" type="button">Tour</button></div></div></div></article>`;
   }
 
-  function closeModal() {
-    document.getElementById('lh-lightbox')?.remove();
-    document.documentElement.classList.remove('lb-noscroll');
-  }
+  function initSliders(){ document.querySelectorAll('.lh-photo-wrap').forEach(wrap=>{ const tpl=wrap.querySelector('.lh-photo-list'); if(!tpl) return; const photos=Array.from(tpl.querySelectorAll('span')).map(s=>s.textContent); if(photos.length<2) return; const img=wrap.querySelector('.lh-photo'), dots=wrap.querySelectorAll('.lh-dot'); let idx=0; function goTo(n){ idx=(n+photos.length)%photos.length; img.src=photos[idx]; img.alt='Photo '+(idx+1); dots.forEach((d,i)=>d.classList.toggle('active',i===idx)); } wrap.querySelector('.lh-arrow--left')?.addEventListener('click',e=>{e.stopPropagation();goTo(idx-1);}); wrap.querySelector('.lh-arrow--right')?.addEventListener('click',e=>{e.stopPropagation();goTo(idx+1);}); }); }
 
-  /* ----------------------- CSS ----------------------- */
-  function injectCSS() {
-    if (document.getElementById('lb-style')) return;
-    const css = `
-      .btn { display:inline-flex; align-items:center; justify-content:center; border-radius:12px; padding:10px 16px; font-weight:600; border:1px solid transparent; }
-      .btn.primary { background:#fff; color:#0c0c0c; }
-      .btn.zillow { background:#006AFF; color:#fff; border-color:transparent; }
-      .btn.zillow:hover { filter:brightness(0.95); }
-      .btn.zillow:active { transform: translateY(1px); }
-      .btn.zillow:focus { outline:2px solid rgba(0,106,255,.35); outline-offset:2px; }
+  function prefillAndOpenSchedule(id,byId){ const panel=document.getElementById('schedule-tour'), toggle=document.getElementById('schedule-toggle'); if(toggle&&panel?.classList.contains('is-collapsed')) toggle.click(); const ref=document.getElementById('listing-ref'), h=id&&byId[id]; if(ref&&h) ref.value=h.id+' — '+h.address+', '+h.city+' '+h.state; setTimeout(()=>panel?.scrollIntoView({behavior:'smooth',block:'start'}),80); }
 
-      .aspect-16x9 { position:relative; width:100%; padding-top:56.25%; overflow:hidden; border-radius:20px; }
-      .fit-cover { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#111; }
+  function initTourButtons(byId){ document.querySelectorAll('.lh-tour-btn').forEach(btn=>{ btn.addEventListener('click',e=>{ e.stopPropagation(); e.preventDefault(); const id=btn.closest('[data-id]')?.getAttribute('data-id'); prefillAndOpenSchedule(id,byId); }); }); }
 
-      .lh-card { position:relative; background:#121212; border:1px solid rgba(255,255,255,.08); border-radius:22px; overflow:hidden; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,.25); }
-      .lh-card-body { padding:16px; }
-      .lh-card-title { font-size:20px; font-weight:800; color:#fff; margin:0 0 4px; }
-      .lh-card-sub { color:#bbb; font-size:14px; margin-bottom:6px; }
-      .lh-card-meta { color:#cfcfcf; font-size:14px; margin-bottom:12px; }
-      .lh-card-actions { display:flex; gap:10px; flex-wrap:wrap; }
+  function initCardClicks(byId){ document.querySelectorAll('.lh-card').forEach(card=>{ const id=card.getAttribute('data-id'), open=()=>openModal(byId[id]); card.addEventListener('click',open); card.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();open();} }); }); }
 
-      .lh-status { position:absolute; top:10px; left:10px; z-index:1; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:800; border:1px solid transparent; }
-      .lh-status.available { background:rgba(20,175,90,.18); border-color:rgba(20,175,90,.25); color:#9cf0bd; }
-      .lh-status.under-contract { background:rgba(255,213,0,.18); border-color:rgba(255,213,0,.35); color:#ffe37a; }
-      .lh-status.sold { background:rgba(255,60,60,.18); border-color:rgba(255,60,60,.35); color:#ff9a9a; }
+  function openModal(h){ const modal=document.getElementById('lh-modal'); if(!modal||!h) return; const body=modal.querySelector('.lh-modal-body'), si=statusInfo(h.status), photos=h.photos||[]; body.innerHTML='<div class="lh-modal-media">'+(photos[0]?'<img class="lh-modal-photo" src="'+esc(photos[0])+'" alt="Photo 1 of '+esc(h.address)+'">'+'<div class="lh-modal-no-photo" aria-hidden="true"></div>')+(photos.length>1?'<button class="lh-marrow lh-marrow--left" type="button" aria-label="Previous">&#8249;</button><button class="lh-marrow lh-marrow--right" type="button" aria-label="Next">&#8250;</button><div class="lh-mcounter" aria-live="polite">1 / '+photos.length+'</div><template class="lh-mphotos">'+photos.map(p=>'<span>'+esc(p)+'</span>').join('')+'</template>':'')+'</div><div class="lh-modal-info"><span class="lh-status-badge '+si.cls+'">'+esc(si.label)+'</span><h2 class="lh-m-address">'+esc(h.address)+'</h2><p class="lh-m-city">'+esc(h.city)+', '+esc(h.state)+' '+esc(h.zipcode||'')+'</p><p class="lh-m-price">'+money(h.price)+'</p>'+(h.mlsNumber?'<p class="lh-m-mls">MLS # '+esc(h.mlsNumber)+'</p>':'')+'<div class="lh-m-actions btn-row">'+(h.zillowUrl?'<a class="btn outline" href="'+esc(h.zillowUrl)+'" target="_blank" rel="noopener noreferrer">View on Zillow ↗</a>':'')+'<button class="btn primary" id="lh-m-schedule" type="button">Schedule a Tour</button></div></div>'; const mWrap=body.querySelector('.lh-modal-media'), mTpl=mWrap?.querySelector('.lh-mphotos'); if(mTpl){ const mP=Array.from(mTpl.querySelectorAll('span')).map(s=>s.textContent), mImg=mWrap.querySelector('.lh-modal-photo'), mCtr=mWrap.querySelector('.lh-mcounter'); let mi=0; const mGo=dir=>{mi=(mi+dir+mP.length)%mP.length;mImg.src=mP[mi];mImg.alt='Photo '+(mi+1);if(mCtr)mCtr.textContent=(mi+1)+' / '+mP.length;}; mWrap.querySelector('.lh-marrow--left')?.addEventListener('click',()=>mGo(-1)); mWrap.querySelector('.lh-marrow--right')?.addEventListener('click',()=>mGo(1)); } const ref=document.getElementById('listing-ref'); if(ref) ref.value=h.id+' — '+h.address+', '+h.city+' '+h.state; body.querySelector('#lh-m-schedule')?.addEventListener('click',()=>{ closeModal(); prefillAndOpenSchedule(h.id,{[h.id]:h}); }); modal.classList.add('open'); modal.removeAttribute('aria-hidden'); document.body.style.overflow='hidden'; modal.querySelector('.lh-modal-close')?.focus(); }
 
-      .lb-noscroll { overflow:hidden; }
-      #lh-lightbox { position:fixed; inset:0; z-index:9999; }
-      #lh-lightbox .lb-overlay { position:absolute; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(2px); }
+  function closeModal(){ const modal=document.getElementById('lh-modal'); if(!modal)return; modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); document.body.style.overflow=''; }
 
-      .lb-close-fixed {
-        position:fixed; top:14px; right:14px; z-index:10000;
-        width:40px; height:40px; border-radius:999px;
-        border:1px solid rgba(255,255,255,.22);
-        background:rgba(0,0,0,.60); color:#fff; font-size:22px; line-height:36px; text-align:center;
-      }
+  function wireModal(){ const modal=document.getElementById('lh-modal'); if(!modal)return; modal.querySelector('.lh-modal-close')?.addEventListener('click',closeModal); modal.addEventListener('click',e=>{if(e.target===modal)closeModal();}); document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open'))closeModal();}); }
 
-      #lh-lightbox .lb-shell { position:absolute; inset:40px; display:flex; gap:24px; }
-      .lb-stage { flex: 2 1 66%; min-width: 0; display:flex; align-items:center; justify-content:center; }
-      .lb-stage-inner { position:relative; width:100%; max-height:calc(100vh - 160px); border-radius:20px; overflow:hidden; background:#0b0b0b; touch-action: pan-y; }
-      .lb-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  function initScheduleToggle(){ const btn=document.getElementById('schedule-toggle'), panel=document.getElementById('schedule-tour'); if(!btn||!panel)return; const openPanel=()=>{ panel.classList.remove('is-collapsed'); panel.classList.add('is-open'); btn.setAttribute('aria-expanded','true'); if(location.hash!=='#schedule')history.replaceState(null,'','#schedule'); setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'start'}),50); }; const closePanel=()=>{ panel.classList.remove('is-open'); panel.classList.add('is-collapsed'); btn.setAttribute('aria-expanded','false'); }; btn.addEventListener('click',e=>{e.preventDefault();panel.classList.contains('is-open')?closePanel():openPanel();}); if(location.hash==='#schedule') openPanel(); }
 
-      .lb-arrow { position:absolute; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.35); color:#fff; font-size:26px; line-height:40px; text-align:center; cursor:pointer; }
-      .lb-left  { left:12px; }
-      .lb-right { right:12px; }
-      .lb-counter { position:absolute; right:12px; bottom:12px; background:rgba(0,0,0,.5); color:#fff; font-weight:700; padding:6px 10px; border-radius:999px; font-size:12px; border:1px solid rgba(255,255,255,.18); }
+  function showSkeleton(grid,count=3){ grid.innerHTML=Array(count).fill(0).map(()=>'<div class="lh-card lh-skeleton" aria-hidden="true"><div class="lh-photo-wrap"><div class="lh-photo skel-block"></div></div><div class="lh-card-body"><div class="skel-line skel-line--wide"></div><div class="skel-line"></div><div class="skel-line skel-line--narrow"></div></div></div>').join(''); }
 
-      .lb-panel { flex:1 1 34%; background:#1a1a1a; border:1px solid rgba(255,255,255,.09); border-radius:20px; padding:22px; color:#eaeaea; position:relative; }
-      .lb-title { font-size:28px; font-weight:900; margin:4px 0 6px; color:#fff; }
-      .lb-sub { color:#bdbdbd; margin-bottom:12px; }
-      .lb-meta { margin:12px 0 18px; }
-      .lb-price { font-size:20px; font-weight:800; margin-bottom:6px; }
-      .lb-specs span { color:#d0d0d0; margin-right:8px; }
-      .lb-actions { display:flex; gap:10px; flex-wrap:wrap; }
+  async function init(){ const grid=document.querySelector('.lh-grid'); if(!grid)return; showSkeleton(grid); wireModal(); initScheduleToggle(); let homes; try { homes=await loadHomes(); } catch(err){ grid.innerHTML='<p class="lh-error" role="alert">Unable to load listings right now. Please try again shortly.</p>'; console.error('[Lafayette] loadHomes:',err); return; } const sorted=sortHomes(homes); if(!sorted.length){ grid.innerHTML='<p class="lh-empty">No listings at this time — check back soon.</p>'; return; } grid.innerHTML=sorted.map(renderCard).join(''); const byId=Object.fromEntries(sorted.map(h=>[h.id,h])); initSliders(); initCardClicks(byId); initTourButtons(byId); grid.querySelectorAll('.lh-card').forEach((card,i)=>{ card.style.animationDelay=(i*60)+'ms'; card.classList.add('lh-card--entering'); }); }
 
-      @media (max-width: 1024px) {
-        #lh-lightbox .lb-shell { inset:20px; flex-direction:column; gap:16px; }
-        .lb-stage-inner { max-height:calc(100vh - 240px); border-radius:16px; }
-        .lb-panel { width:100%; padding:16px; border-radius:16px; }
-        .lb-title { font-size:24px; }
-        .btn { padding:9px 14px; }
-      }
-      @media (max-width: 480px) {
-        #lh-lightbox .lb-shell { inset:12px; }
-        .lb-close-fixed { top:10px; right:10px; width:36px; height:36px; font-size:20px; line-height:34px; }
-        .lb-arrow { width:38px; height:38px; font-size:22px; }
-        .lb-counter { font-size:11px; padding:5px 9px; }
-      }
-    `.trim();
-    const style = document.createElement('style');
-    style.id = 'lb-style';
-    style.textContent = css;
-    document.head.appendChild(style);
-  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
