@@ -24,6 +24,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preload" as="image" href="images/webp/hero.webp" />
   <link rel="stylesheet" href="styles.css?v=30" />
+  <link rel="stylesheet" href="styles.chat.css" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -84,6 +85,7 @@
       <div class="stats-bar-item"><div class="stat-num">⭐⭐⭐⭐⭐</div><div class="stat-label">Client Rated</div></div>
     </div>
   </div>
+
   <section id="services" class="container mt-60" aria-labelledby="services-heading">
     <p class="section-label reveal">Why Build With Us</p>
     <h2 class="h2 reveal" id="services-heading">Built different, from the start</h2>
@@ -144,6 +146,7 @@
       <picture><source type="image/webp" srcset="images/webp/int3.webp" /><img class="glight gallery-tile" src="images/int3.jpg" alt="Primary suite" width="1085" height="603" loading="lazy" decoding="async" /></picture>
     </div>
   </section>
+
   <section id="process" class="container mt-60" aria-labelledby="process-heading">
     <p class="section-label reveal">How It Works</p>
     <h2 class="h2 reveal" id="process-heading">Our process</h2>
@@ -159,9 +162,9 @@
     <p class="section-label reveal">Client Stories</p>
     <h2 class="h2 reveal" id="testimonials-heading">What our clients say</h2>
     <div class="testimonials-grid">
-      <blockquote class="testimonial reveal"><p class="quote">“We were amazed at how easy the process was. Lafayette kept us informed and finished on time. Our home is everything we hoped for.”</p><footer><cite class="cite">— Sarah &amp; Mike, Greenville</cite></footer></blockquote>
-      <blockquote class="testimonial reveal" style="transition-delay:.1s"><p class="quote">“I picked a plan and they handled the rest. The finishes are gorgeous and the craftsmanship is top notch.”</p><footer><cite class="cite">— James, Spartanburg</cite></footer></blockquote>
-      <blockquote class="testimonial reveal" style="transition-delay:.2s"><p class="quote">“As first‑time builders we were nervous, but Lafayette guided us with honesty and patience. Highly recommend!”</p><footer><cite class="cite">— Ashley &amp; Daniel, Anderson</cite></footer></blockquote>
+      <blockquote class="testimonial reveal"><p class="quote">"We were amazed at how easy the process was. Lafayette kept us informed and finished on time. Our home is everything we hoped for."</p><footer><cite class="cite">— Sarah &amp; Mike, Greenville</cite></footer></blockquote>
+      <blockquote class="testimonial reveal" style="transition-delay:.1s"><p class="quote">"I picked a plan and they handled the rest. The finishes are gorgeous and the craftsmanship is top notch."</p><footer><cite class="cite">— James, Spartanburg</cite></footer></blockquote>
+      <blockquote class="testimonial reveal" style="transition-delay:.2s"><p class="quote">"As first‑time builders we were nervous, but Lafayette guided us with honesty and patience. Highly recommend!"</p><footer><cite class="cite">— Ashley &amp; Daniel, Anderson</cite></footer></blockquote>
     </div>
   </section>
   <section id="contact" class="container mt-60" style="padding-bottom:80px" aria-labelledby="contact-heading">
@@ -173,7 +176,7 @@
         <div class="card"><p class="section-label">Move-in Ready</p><h3 class="h3">Spec builds</h3><p class="muted">Quick move‑in homes — ideal if you need something now.</p></div>
         <div class="card"><p class="section-label">Your Vision</p><h3 class="h3">Custom builds</h3><p class="muted">Design from scratch or modify our plans; choose every finish along the way.</p></div>
       </div>
-      <form class="card form mt-12" action="https://formspree.io/f/mnjgkzdg" method="POST" novalidate>
+      <form class="card form mt-12" action="https://formspree.io/f/YOUR_FORMSPREE_CONTACT_ID" method="POST" novalidate>
         <input type="text" name="_gotcha" autocomplete="off" tabindex="-1" style="position:absolute;left:-5000px;height:0;width:0;opacity:0;" aria-hidden="true" />
         <input type="hidden" name="_next" value="https://buildwithlafayette.com/thank-you.html" />
         <div class="row two-col">
@@ -209,6 +212,7 @@
   <img src="" alt="" />
 </div>
 <script src="main.js?v=10" defer></script>
+<script src="chat.js" defer></script>
 <script>
 (function(){
   const obs=new IntersectionObserver((entries)=>{ entries.forEach(e=>{ if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);} }); },{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
